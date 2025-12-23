@@ -1,9 +1,11 @@
 {
-  "name": "x402-demo-server",
+  "name": "x402-demo",
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx server.ts"
+    "dev:server": "tsx src/server/index.ts",
+    "dev:client": "tsx src/client/index.ts",
+    "dev": "npm run dev:server"
   },
   "dependencies": {
     "@stacks/wallet-sdk": "^6.15.0",
