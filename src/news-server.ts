@@ -57,9 +57,10 @@ async function getStacksAndBitcoinNews(): Promise<string> {
       {
         role: "user",
         content:
-          "What are the latest news and developments about Stacks and Bitcoin? Please provide a comprehensive summary of recent updates, price movements, technological developments, and important announcements.",
+          `What are the latest news and developments about Stacks and Bitcoin in last 24 hours? Please provide a comprehensive summary of recent updates, price movements, technological developments, and important announcements searching through X and web also provide me the links to it. (Request time: ${new Date().toISOString()})`,
       },
     ],
+    temperature: 0.7,
     stream: false,
   });
 
