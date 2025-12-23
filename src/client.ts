@@ -5,7 +5,7 @@ import {
   decodeXPaymentResponse,
   getExplorerURL,
 } from "x402-stacks";
-import { mnemonicToAccount } from "../utils/index";
+import { mnemonicToAccount } from "./utils/index";
 
 // Configuration
 const NETWORK = (process.env.NETWORK as "mainnet" | "testnet") || "testnet";

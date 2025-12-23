@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev:server": "tsx src/server/index.ts",
-    "dev:client": "tsx src/client/index.ts",
-    "dev:scheduler": "tsx src/scheduler/index.ts",
+    "dev:server": "tsx src/server.ts",
+    "dev:client": "tsx src/client.ts",
+    "dev:scheduler": "tsx src/scheduler.ts",
     "dev": "npm run dev:server"
   },
   "dependencies": {
