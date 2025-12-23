@@ -20,34 +20,28 @@ const openrouter = new OpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
 });
 
-// Agent function to fetch news about Stacks and Bitcoin
 async function getStacksAndBitcoinNews(): Promise<string> {
-  try {
-    const completion = await openrouter.chat.send({
-      model: "x-ai/grok-4.1-fast:online", // :online enables web search and X search
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a helpful assistant that provides the latest news and updates about Stacks blockchain and Bitcoin. Provide concise, accurate, and up-to-date information from reliable sources.",
-        },
-        {
-          role: "user",
-          content:
-            "What are the latest news and developments about Stacks and Bitcoin? Please provide a comprehensive summary of recent updates, price movements, technological developments, and important announcements.",
-        },
-      ],
-      stream: false,
-    });
+  const completion = await openrouter.chat.send({
+    model: "x-ai/grok-4.1-fast:online",
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are a helpful assistant that provides the latest news and updates about Stacks blockchain and Bitcoin. Provide concise, accurate, and up-to-date information from reliable sources.",
+      },
+      {
+        role: "user",
+        content:
+          "What are the latest news and developments about Stacks and Bitcoin? Please provide a comprehensive summary of recent updates, price movements, technological developments, and important announcements.",
+      },
+    ],
+    stream: false,
+  });
 
-    const content = completion.choices[0]?.message?.content;
-    return typeof content === "string"
-      ? content
-      : "Unable to fetch news at this time.";
-  } catch (error) {
-    console.error("Error fetching news from OpenRouter:", error);
-    throw new Error("Failed to fetch news. Please try again later.");
-  }
+  const content = completion.choices[0]?.message?.content;
+  return typeof content === "string"
+    ? content
+    : "Unable to fetch news at this time.";
 }
 
 // Protected endpoint - requires 0.001 STX payment
@@ -93,8 +87,7 @@ app.get(
   }
 );
 
-// Health check endpoint (no payment required)
-app.get("/health", (req: Request, res: Response) => {
+app.get("/health", (_req: Request, res: Response) => {
   res.json({
     status: "ok",
     timestamp: new Date().toISOString(),
