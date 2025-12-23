@@ -55,17 +55,13 @@ app.get(
     facilitatorUrl: FACILITATOR_URL,
   }),
   async (req: Request, res: Response) => {
-    // This handler only executes AFTER payment is confirmed
     const payment = getPayment(req);
 
     try {
-      // Fetch news using the Grok agent
       const news = await getStacksAndBitcoinNews();
 
       res.json({
-        success: true,
         news,
-        message: "Payment received! Here's the latest Stacks and Bitcoin news.",
         payment: {
           txId: payment.txId,
           amount: payment.amount.toString(),
@@ -74,14 +70,7 @@ app.get(
       });
     } catch (error) {
       res.status(500).json({
-        success: false,
-        error:
-          error instanceof Error ? error.message : "An unknown error occurred",
-        payment: {
-          txId: payment.txId,
-          amount: payment.amount.toString(),
-          sender: payment.sender,
-        },
+        error: error instanceof Error ? error.message : "Failed to fetch news",
       });
     }
   }

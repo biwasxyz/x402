@@ -6,7 +6,7 @@ import {
   decodeXPaymentResponse,
   getExplorerURL,
 } from "x402-stacks";
-import { mnemonicToAccount } from "../utils/index";
+import { mnemonicToAccount } from "./utils/index";
 
 // Configuration
 const NETWORK = (process.env.NETWORK as "mainnet" | "testnet") || "testnet";
@@ -42,10 +42,10 @@ async function makePayment() {
 
     const api = withPaymentInterceptor(axiosInstance, account);
 
-    console.log(`🌐 Requesting: GET /api/personal-data`);
+    console.log(`🌐 Requesting: GET /api/crypto-news`);
 
     // Make request with automatic payment
-    const response = await api.get("/api/personal-data");
+    const response = await api.get("/api/crypto-news");
 
     console.log("✅ Payment successful!");
     console.log("\n📦 Received Data:");
@@ -70,8 +70,16 @@ async function makePayment() {
     if (error.response?.status === 402) {
       console.error("Payment required but failed:");
       console.error(JSON.stringify(error.response.data, null, 2));
+      console.error("\nResponse headers:");
+      console.error(JSON.stringify(error.response.headers, null, 2));
     } else {
-      console.error(error.response?.data?.error || error.message);
+      console.error("Error message:", error.message);
+      console.error("\nFull error details:");
+      console.error(JSON.stringify({
+        status: error.response?.status,
+        data: error.response?.data,
+        headers: error.response?.headers,
+      }, null, 2));
     }
   }
 
@@ -83,7 +91,7 @@ async function main() {
   console.log("🤖 x402 Automated Payment Scheduler");
   console.log("=".repeat(80));
   console.log(`⏰ Schedule: ${CRON_SCHEDULE}`);
-  console.log(`🎯 Target: ${SERVER_URL}/api/personal-data`);
+  console.log(`🎯 Target: ${SERVER_URL}/api/crypto-news`);
   console.log(`🌐 Network: ${NETWORK}`);
 
   // Create account to show address
