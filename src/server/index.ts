@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express, { Request, Response } from "express";
 import { x402PaymentRequired, STXtoMicroSTX, getPayment } from "x402-stacks";
+import { OpenRouter } from "@openrouter/sdk";
 
 const app = express();
 app.use(express.json());
@@ -14,9 +15,44 @@ const PORT = process.env.PORT || 3000;
 const FACILITATOR_URL =
   process.env.FACILITATOR_URL || "https://facilitator.x402stacks.xyz";
 
+// Initialize OpenRouter client
+const openrouter = new OpenRouter({
+  apiKey: process.env.OPENROUTER_API_KEY,
+});
+
+// Agent function to fetch news about Stacks and Bitcoin
+async function getStacksAndBitcoinNews(): Promise<string> {
+  try {
+    const completion = await openrouter.chat.send({
+      model: "x-ai/grok-4.1-fast:online", // :online enables web search and X search
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a helpful assistant that provides the latest news and updates about Stacks blockchain and Bitcoin. Provide concise, accurate, and up-to-date information from reliable sources.",
+        },
+        {
+          role: "user",
+          content:
+            "What are the latest news and developments about Stacks and Bitcoin? Please provide a comprehensive summary of recent updates, price movements, technological developments, and important announcements.",
+        },
+      ],
+      stream: false,
+    });
+
+    const content = completion.choices[0]?.message?.content;
+    return typeof content === "string"
+      ? content
+      : "Unable to fetch news at this time.";
+  } catch (error) {
+    console.error("Error fetching news from OpenRouter:", error);
+    throw new Error("Failed to fetch news. Please try again later.");
+  }
+}
+
 // Protected endpoint - requires 0.001 STX payment
 app.get(
-  "/api/personal-data",
+  "/api/crypto-news",
   x402PaymentRequired({
     amount: STXtoMicroSTX(0.001), // 0.001 STX = 1000 microSTX
     address: SERVER_ADDRESS,
@@ -24,28 +60,36 @@ app.get(
     tokenType: "STX",
     facilitatorUrl: FACILITATOR_URL,
   }),
-  (req: Request, res: Response) => {
+  async (req: Request, res: Response) => {
     // This handler only executes AFTER payment is confirmed
     const payment = getPayment(req);
 
-    res.json({
-      success: true,
-      personalData: {
-        userId: "user_123",
-        name: "John Doe",
-        email: "john@example.com",
-        preferences: {
-          theme: "dark",
-          notifications: true,
+    try {
+      // Fetch news using the Grok agent
+      const news = await getStacksAndBitcoinNews();
+
+      res.json({
+        success: true,
+        news,
+        message: "Payment received! Here's the latest Stacks and Bitcoin news.",
+        payment: {
+          txId: payment.txId,
+          amount: payment.amount.toString(),
+          sender: payment.sender,
         },
-      },
-      message: "Payment received! Here's your personal data.",
-      payment: {
-        txId: payment.txId,
-        amount: payment.amount.toString(),
-        sender: payment.sender,
-      },
-    });
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error:
+          error instanceof Error ? error.message : "An unknown error occurred",
+        payment: {
+          txId: payment.txId,
+          amount: payment.amount.toString(),
+          sender: payment.sender,
+        },
+      });
+    }
   }
 );
 
@@ -66,7 +110,7 @@ app.listen(PORT, () => {
   console.log("\nAvailable endpoints:");
   console.log("  GET  /health - Health check (free)");
   console.log(
-    "  GET  /api/personal-data - Personal data (0.001 STX, confirmed)"
+    "  GET  /api/crypto-news - Stacks & Bitcoin news via Grok AI (0.001 STX, confirmed)"
   );
   console.log("");
 });

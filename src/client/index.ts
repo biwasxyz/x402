@@ -14,10 +14,6 @@ const MNEMONIC = process.env.CLIENT_MNEMONIC || "";
 
 if (!MNEMONIC) {
   console.error("\n❌ Error: CLIENT_MNEMONIC not set in .env");
-  console.log("\nAdd this to your .env file:");
-  console.log('CLIENT_MNEMONIC="your twelve or twenty-four word mnemonic phrase here"');
-  console.log("\nGet testnet STX from:");
-  console.log("https://explorer.stacks.co/sandbox/faucet?chain=testnet\n");
   process.exit(1);
 }
 
@@ -74,16 +70,17 @@ async function main() {
   }
 
   // Make request with automatic payment
-  console.log("--- Requesting Personal Data (automatic payment) ---\n");
+  console.log("--- Requesting Crypto News (automatic payment) ---\n");
 
   try {
-    console.log("🌐 GET /api/personal-data");
+    console.log("🌐 GET /api/crypto-news");
 
     // Just make a normal request - payment is handled automatically!
-    const response = await api.get("/api/personal-data");
+    const response = await api.get("/api/crypto-news");
 
-    console.log("✅ Success! Received data:\n");
-    console.log(JSON.stringify(response.data, null, 2));
+    console.log("✅ Success! Received crypto news:\n");
+    console.log("📰 News:", response.data.news);
+    console.log("\n💰 Payment Info:", JSON.stringify(response.data.payment, null, 2));
 
     // Decode the payment response header
     const paymentResponse = decodeXPaymentResponse(
