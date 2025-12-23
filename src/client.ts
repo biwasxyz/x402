@@ -28,6 +28,36 @@ async function main() {
   });
 
 
+  // Add request interceptor to log outgoing requests
+  axiosInstance.interceptors.request.use((config) => {
+    console.log(`\n Request: ${config.method?.toUpperCase()} ${config.url}`);
+    if (config.headers['x-payment-tx-id']) {
+      console.log(` Includes Payment: TX ${config.headers['x-payment-tx-id']}`);
+    }
+    return config;
+  });
+
+  // Add response interceptor to log responses
+  axiosInstance.interceptors.response.use(
+    (response) => {
+      console.log(`✅ Response: ${response.status} ${response.statusText}`);
+      if (response.headers['x-payment-response']) {
+        console.log(`   💰 Payment Accepted`);
+      }
+      return response;
+    },
+    (error) => {
+      if (error.response) {
+        console.log(`⚠️  Response: ${error.response.status} ${error.response.statusText}`);
+        if (error.response.status === 402) {
+          console.log(`   💳 Payment Required: ${JSON.stringify(error.response.data)}`);
+          console.log(`   🔄 Interceptor will handle payment and retry...`);
+        }
+      }
+      throw error;
+    }
+  );
+
   const api = withPaymentInterceptor(axiosInstance, account);
 
   try {
@@ -37,26 +67,43 @@ async function main() {
     process.exit(1);
   }
 
-  console.log("\nRequesting Crypto News...");
+  console.log("\n" + "=".repeat(80));
+  console.log("🎬 STARTING PAYMENT FLOW");
+  console.log("=".repeat(80));
 
   try {
-    const response = await api.get("/api/crypto-news");
+    const response = await api.get("/api/stacks-news");
 
-    console.log("✅ Success!\n");
-    console.log("📰 News:\n", response.data.news);
+    console.log("\n" + "=".repeat(80));
+    console.log("🎉 PAYMENT FLOW COMPLETED SUCCESSFULLY");
+    console.log("=".repeat(80));
 
     const paymentResponse = decodeXPaymentResponse(
       response.headers["x-payment-response"]
     );
 
     if (paymentResponse) {
-      console.log("\n💳 Payment:");
-      console.log(`   TX: ${paymentResponse.txId}`);
+      console.log("\n💳 Final Payment Details:");
+      console.log(`   Transaction ID: ${paymentResponse.txId}`);
       console.log(`   Status: ${paymentResponse.status}`);
+      console.log(`   Block Height: ${paymentResponse.blockHeight || 'pending'}`);
       console.log(`   Explorer: ${getExplorerURL(paymentResponse.txId, NETWORK)}`);
     }
+
+    console.log("\n📰 Received Content:");
+    console.log("─".repeat(80));
+    console.log(response.data.news);
+    console.log("─".repeat(80));
   } catch (error: any) {
-    console.error("\n❌ Error:", error.response?.data?.error || error.message);
+    console.log("\n" + "=".repeat(80));
+    console.error("❌ PAYMENT FLOW FAILED");
+    console.log("=".repeat(80));
+    console.error("Error:", error.response?.data?.error || error.message);
+    if (error.response) {
+      console.error("\nResponse Details:");
+      console.error(`  Status: ${error.response.status}`);
+      console.error(`  Data:`, JSON.stringify(error.response.data, null, 2));
+    }
   }
 }
 

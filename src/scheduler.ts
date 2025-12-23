@@ -42,10 +42,10 @@ async function makePayment() {
 
     const api = withPaymentInterceptor(axiosInstance, account);
 
-    console.log(`🌐 Requesting: GET /api/crypto-news`);
+    console.log(`🌐 Requesting: GET /api/stacks-news`);
 
     // Make request with automatic payment
-    const response = await api.get("/api/crypto-news");
+    const response = await api.get("/api/stacks-news");
 
     console.log("✅ Payment successful!");
     console.log("\n📦 Received Data:");
@@ -91,7 +91,7 @@ async function main() {
   console.log("🤖 x402 Automated Payment Scheduler");
   console.log("=".repeat(80));
   console.log(`⏰ Schedule: ${CRON_SCHEDULE}`);
-  console.log(`🎯 Target: ${SERVER_URL}/api/crypto-news`);
+  console.log(`🎯 Target: ${SERVER_URL}/api/stacks-news`);
   console.log(`🌐 Network: ${NETWORK}`);
 
   // Create account to show address

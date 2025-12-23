@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev:server": "tsx src/server.ts",
+    "dev:server": "tsx src/news-server.ts",
     "dev:client": "tsx src/client.ts",
     "dev:scheduler": "tsx src/scheduler.ts",
     "dev": "npm run dev:server"

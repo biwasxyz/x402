@@ -6,7 +6,32 @@ import { OpenRouter } from "@openrouter/sdk";
 const app = express();
 app.use(express.json());
 
-// Server configuration from environment variables
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+
+  if (req.headers['x-payment-tx-id']) {
+    console.log(`  Payment: ${req.headers['x-payment-tx-id']}`);
+  } else {
+    console.log(`  No payment`);
+  }
+
+  // Log response
+  const originalSend = res.send;
+  res.send = function(data) {
+    if (res.statusCode === 402) {
+      console.log(`  Response: 402 - Sending payment details`);
+    } else if (res.statusCode === 200) {
+      console.log(`  Response: 200 - OK`);
+    } else {
+      console.log(`  Response: ${res.statusCode}`);
+    }
+    return originalSend.call(this, data);
+  };
+
+  next();
+});
+
 const SERVER_ADDRESS =
   process.env.SERVER_ADDRESS || "STZWXQNJWS9WT1409PABGQCT318VWXWZ6VK2C583";
 const NETWORK =
@@ -46,7 +71,7 @@ async function getStacksAndBitcoinNews(): Promise<string> {
 
 // Protected endpoint - requires 0.001 STX payment
 app.get(
-  "/api/crypto-news",
+  "/api/stacks-news",
   x402PaymentRequired({
     amount: STXtoMicroSTX(0.001), // 0.001 STX = 1000 microSTX
     address: SERVER_ADDRESS,
@@ -57,8 +82,13 @@ app.get(
   async (req: Request, res: Response) => {
     const payment = getPayment(req);
 
+    console.log(`  Payment verified: ${payment.txId}`);
+    console.log(`  Fetching news...`);
+
     try {
       const news = await getStacksAndBitcoinNews();
+
+      console.log(`  News fetched: ${news.length} chars`);
 
       res.json({
         news,
@@ -69,6 +99,7 @@ app.get(
         },
       });
     } catch (error) {
+      console.error(`  Error:`, error instanceof Error ? error.message : error);
       res.status(500).json({
         error: error instanceof Error ? error.message : "Failed to fetch news",
       });
@@ -92,7 +123,7 @@ app.listen(PORT, () => {
   console.log("\nAvailable endpoints:");
   console.log("  GET  /health - Health check (free)");
   console.log(
-    "  GET  /api/crypto-news - Stacks & Bitcoin news via Grok AI (0.001 STX, confirmed)"
+    "  GET  /api/stacks-news - Stacks & Bitcoin news via Grok AI"
   );
   console.log("");
 });
