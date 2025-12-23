@@ -5,12 +5,15 @@
   "scripts": {
     "dev:server": "tsx src/server/index.ts",
     "dev:client": "tsx src/client/index.ts",
+    "dev:scheduler": "tsx src/scheduler/index.ts",
     "dev": "npm run dev:server"
   },
   "dependencies": {
     "@stacks/wallet-sdk": "^6.15.0",
+    "@types/node-cron": "^3.0.11",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
+    "node-cron": "^4.2.1",
     "x402-stacks": "latest"
   },
   "devDependencies": {
