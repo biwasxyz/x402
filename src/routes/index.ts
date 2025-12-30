@@ -1,4 +1,5 @@
 import { Router } from "express";
+import docsRoutes from "./docs.routes";
 import newsRoutes from "./news.routes";
 import auditRoutes from "./audit.routes";
 
@@ -18,6 +19,7 @@ router.get("/health", (req, res) => {
 });
 
 // Mount routes
+router.use(docsRoutes);
 router.use("/api", newsRoutes);
 router.use("/api", auditRoutes);
 

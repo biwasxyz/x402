@@ -4,9 +4,7 @@ import { getContractSource } from "../services/stacks.service";
 import { performSecurityAudit } from "../services/audit.service";
 
 interface AuditRequest {
-  contractIdentifier?: string;
-  contractCode?: string;
-  contractName?: string;
+  contractIdentifier: string;
 }
 
 export async function auditContract(req: Request, res: Response) {
@@ -14,34 +12,24 @@ export async function auditContract(req: Request, res: Response) {
   console.log(`  Payment verified: ${payment.txId}`);
 
   try {
-    const { contractIdentifier, contractCode, contractName = "unnamed-contract" } = req.body as AuditRequest;
+    const { contractIdentifier } = req.body as AuditRequest;
 
-    let sourceCode: string;
-    let finalContractName: string;
-    let finalContractIdentifier: string | undefined;
-
-    // Fetch from Stacks API if identifier provided
-    if (contractIdentifier) {
-      console.log(`  Fetching contract from Stacks API: ${contractIdentifier}`);
-      sourceCode = await getContractSource(contractIdentifier);
-      const [, name] = contractIdentifier.split(".");
-      finalContractName = name;
-      finalContractIdentifier = contractIdentifier;
-    } else if (contractCode) {
-      sourceCode = contractCode;
-      finalContractName = contractName;
-    } else {
+    if (!contractIdentifier) {
       return res.status(400).json({
-        error: "Either 'contractIdentifier' or 'contractCode' must be provided",
+        error: "contractIdentifier is required",
       });
     }
 
-    console.log(`  Analyzing contract: ${finalContractName} (${sourceCode.length} chars)`);
+    console.log(`  Fetching contract from Stacks API: ${contractIdentifier}`);
+    const sourceCode = await getContractSource(contractIdentifier);
+    const [, contractName] = contractIdentifier.split(".");
+
+    console.log(`  Analyzing contract: ${contractName} (${sourceCode.length} chars)`);
 
     const auditResult = await performSecurityAudit(
       sourceCode,
-      finalContractName,
-      finalContractIdentifier
+      contractName,
+      contractIdentifier
     );
 
     console.log(`  Audit complete: ${auditResult.overallRisk} risk, ${auditResult.vulnerabilities.length} findings`);
