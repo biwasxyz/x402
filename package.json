@@ -3,10 +3,11 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev:server": "tsx src/news-server.ts",
-    "dev:client": "tsx src/client.ts",
-    "dev:scheduler": "tsx src/scheduler.ts",
-    "dev": "npm run dev:server"
+    "dev": "tsx src/index.ts",
+    "client:news": "tsx src/clients/news-client.ts",
+    "client:whitehat": "tsx src/clients/whitehat-client.ts",
+    "audit": "tsx src/clients/whitehat-client.ts",
+    "dev:scheduler": "tsx src/scheduler.ts"
   },
   "dependencies": {
     "@openrouter/sdk": "^0.3.10",

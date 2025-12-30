@@ -5,11 +5,11 @@ import {
   decodeXPaymentResponse,
   getExplorerURL,
 } from "x402-stacks";
-import { mnemonicToAccount } from "./utils/index";
+import { mnemonicToAccount } from "../utils/index";
 
 // Configuration
 const NETWORK = (process.env.NETWORK as "mainnet" | "testnet") || "testnet";
-const SERVER_URL = process.env.SERVER_URL || "http://localhost:3000";
+const API_URL = process.env.API_URL || "http://localhost:3000";
 const MNEMONIC = process.env.CLIENT_MNEMONIC || "";
 
 if (!MNEMONIC) {
@@ -23,7 +23,7 @@ async function main() {
 
   // Create axios instance with automatic payment handling
   const axiosInstance = axios.create({
-    baseURL: SERVER_URL,
+    baseURL: API_URL,
     timeout: 60000, // 60 seconds - settlement can take time
   });
 
@@ -61,9 +61,9 @@ async function main() {
   const api = withPaymentInterceptor(axiosInstance, account);
 
   try {
-    await axios.get(`${SERVER_URL}/health`);
+    await axios.get(`${API_URL}/health`);
   } catch {
-    console.error("❌ Server not running. Start with: npm run dev:server");
+    console.error("❌ Server not running. Start with: npm run dev");
     process.exit(1);
   }
 
@@ -72,7 +72,7 @@ async function main() {
   console.log("=".repeat(80));
 
   try {
-    const response = await api.get("/api/stacks-news");
+    const response = await api.get("/api/news");
 
     console.log("\n" + "=".repeat(80));
     console.log("🎉 PAYMENT FLOW COMPLETED SUCCESSFULLY");
