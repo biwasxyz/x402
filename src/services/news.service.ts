@@ -2,7 +2,7 @@ import { openrouter } from "./openrouter.service";
 
 export async function getStacksAndBitcoinNews(): Promise<string> {
   const completion = await openrouter.chat.send({
-    model: "x-ai/grok-2-1212",
+    model: "x-ai/grok-4.1-fast",
     messages: [
       {
         role: "system",

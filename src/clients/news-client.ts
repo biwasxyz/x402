@@ -9,7 +9,7 @@ import { mnemonicToAccount } from "../utils/index";
 
 // Configuration
 const NETWORK = (process.env.NETWORK as "mainnet" | "testnet") || "testnet";
-const API_URL = process.env.API_URL || "http://localhost:3000";
+const API_URL = process.env.API_URL || "http://localhost:3001";
 const MNEMONIC = process.env.CLIENT_MNEMONIC || "";
 
 if (!MNEMONIC) {

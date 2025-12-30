@@ -1,7 +1,7 @@
 import app from "./app";
 import { STACKS_API_URL } from "./services/stacks.service";
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 const NETWORK = process.env.NETWORK || "testnet";
 const SERVER_ADDRESS = process.env.SERVER_ADDRESS || "STZWXQNJWS9WT1409PABGQCT318VWXWZ6VK2C583";
 

@@ -10,7 +10,7 @@ import { mnemonicToAccount } from "./utils/index";
 
 // Configuration
 const NETWORK = (process.env.NETWORK as "mainnet" | "testnet") || "testnet";
-const SERVER_URL = process.env.SERVER_URL || "http://localhost:3000";
+const SERVER_URL = process.env.SERVER_URL || "http://localhost:3001";
 const MNEMONIC = process.env.CLIENT_MNEMONIC || "";
 const CRON_SCHEDULE = process.env.CRON_SCHEDULE || "*/5 * * * *"; // Default: Every 5 minutes
 

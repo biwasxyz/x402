@@ -34,7 +34,7 @@ app.use((req, res, next) => {
 
 const SERVER_ADDRESS = process.env.SERVER_ADDRESS || "STZWXQNJWS9WT1409PABGQCT318VWXWZ6VK2C583";
 const NETWORK = (process.env.NETWORK as "mainnet" | "testnet") || "testnet";
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 const FACILITATOR_URL = process.env.FACILITATOR_URL || "https://facilitator.x402stacks.xyz";
 
 // Initialize OpenRouter client
@@ -72,7 +72,7 @@ app.get("/health", (_req: Request, res: Response) => {
 // ============================================================================
 async function getStacksAndBitcoinNews(): Promise<string> {
   const completion = await openrouter.chat.send({
-    model: "x-ai/grok-2-1212",
+    model: "x-ai/grok-4.1-fast",
     messages: [
       {
         role: "system",
