@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "start": "tsx src/index.ts",
     "dev": "tsx src/index.ts",
     "client:news": "tsx src/clients/news-client.ts",
     "client:whitehat": "tsx src/clients/whitehat-client.ts",
