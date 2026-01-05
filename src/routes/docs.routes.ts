@@ -38,6 +38,26 @@ router.get("/", (req: Request, res: Response) => {
         body: {
           contractIdentifier: "SP000...CONTRACT_NAME"
         }
+      },
+      walletClassifier: {
+        path: "/api/wallet/classify",
+        method: "POST",
+        description: "Classify wallet behavior as trader, dao, bridge, bot, or whale",
+        cost: "0.005 STX",
+        payment: "Required via x402 protocol",
+        body: {
+          address: "SP... or SM..."
+        }
+      },
+      userResearch: {
+        path: "/api/research/user",
+        method: "POST",
+        description: "Research a user using AI with real-time web search",
+        cost: "0.005 STX",
+        payment: "Required via x402 protocol",
+        body: {
+          username: "@username or username"
+        }
       }
     },
     payment: {
@@ -231,6 +251,80 @@ router.get("/docs", (req: Request, res: Response) => {
         <h4>Request Body:</h4>
         <pre><code>{
   "contractIdentifier": "SP000000000000000000002Q6VF78.pox"
+}</code></pre>
+    </div>
+
+    <!-- Wallet Classifier Endpoint -->
+    <div class="endpoint">
+        <h3>
+            <span class="method post">POST</span>
+            <code>/api/wallet/classify</code>
+            <span class="cost">0.005 STX</span>
+        </h3>
+        <p>Classify wallet behavior as trader, dao, bridge, bot, or whale using AI analysis of on-chain activity.</p>
+
+        <div class="warning-box">
+            <strong>⚠️ Payment Required:</strong> This endpoint requires x402 payment verification.
+        </div>
+
+        <h4>Request Body:</h4>
+        <pre><code>{
+  "address": "SP2J6ZY48GV1EZ5V2V5RB9MP66SW86PYKKNRV9EJ7"
+}</code></pre>
+
+        <h4>Response:</h4>
+        <pre><code>{
+  "success": true,
+  "data": {
+    "address": "SP2J6ZY48GV1EZ5V2V5RB9MP66SW86PYKKNRV9EJ7",
+    "classification": "trader",
+    "confidence": 0.85,
+    "reasoning": "High DEX interaction frequency...",
+    "metrics": {
+      "stxBalance": "1000000000",
+      "totalTransactions": 50,
+      "uniqueContractsInteracted": 12,
+      "fungibleTokensHeld": 5,
+      "nftCount": 0,
+      "avgTransactionFrequency": "2 hours",
+      "largestTransaction": "500000000"
+    }
+  },
+  "meta": { "timestamp": "...", "payment": {...} }
+}</code></pre>
+    </div>
+
+    <!-- User Research Endpoint -->
+    <div class="endpoint">
+        <h3>
+            <span class="method post">POST</span>
+            <code>/api/research/user</code>
+            <span class="cost">0.005 STX</span>
+        </h3>
+        <p>Research a user using AI with real-time web and social media search (powered by Grok).</p>
+
+        <div class="warning-box">
+            <strong>⚠️ Payment Required:</strong> This endpoint requires x402 payment verification.
+        </div>
+
+        <h4>Request Body:</h4>
+        <pre><code>{
+  "username": "@elikitten"
+}</code></pre>
+
+        <h4>Response:</h4>
+        <pre><code>{
+  "success": true,
+  "data": {
+    "username": "elikitten",
+    "platform": "X/Twitter",
+    "summary": "Comprehensive user profile...",
+    "keyFindings": ["Key fact 1", "Key fact 2"],
+    "sentiment": "positive",
+    "topics": ["crypto", "stacks", "bitcoin"],
+    "sources": ["https://x.com/..."]
+  },
+  "meta": { "timestamp": "...", "payment": {...} }
 }</code></pre>
     </div>
 
