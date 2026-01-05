@@ -13,6 +13,7 @@ export async function getContractSource(contractIdentifier: string): Promise<str
   }
 
   const url = `${STACKS_API_URL}/v2/contracts/source/${address}/${contractName}`;
+  console.log(`[stacks.service] Fetching Clarity source: ${contractIdentifier} (${url})`);
 
   try {
     const response = await axios.get(url);

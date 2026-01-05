@@ -12,7 +12,7 @@ export async function getNews(req: Request, res: Response) {
 
     sendSuccess(
       res,
-      { news },
+      news,
       200,
       {
         txId: payment.txId,
