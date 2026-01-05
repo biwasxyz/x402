@@ -20,13 +20,13 @@ export async function researchUser(username: string): Promise<UserResearch> {
 
   // Use grok-4.1-fast with online search capability
   const completion = await openrouter.chat.send({
-    model: "x-ai/grok-4.1-fast",
+    model: "x-ai/grok-4.1-fast:online",
     messages: [
       {
         role: "system",
-        content: `You are a research analyst with access to real-time web and social media data. Your task is to research users and provide comprehensive profiles based on their online presence.
+        content: `You are a research analyst and Your task is to research users and provide comprehensive profiles based on their online presence.
 
-Research the user thoroughly using X (Twitter), web search, and any available public information. Focus on:
+Research the user based on their X posts and websearch. Focus on:
 1. Their professional background and expertise
 2. Recent activity and posts
 3. Key topics they discuss
