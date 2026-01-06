@@ -7,6 +7,7 @@
     "dev": "tsx src/index.ts",
     "client:news": "tsx src/clients/news-client.ts",
     "client:research": "tsx src/clients/research-client.ts",
+    "client:sentiment": "tsx src/clients/sentiment-client.ts",
     "client:wallet": "tsx src/clients/wallet-client.ts",
     "client:whitehat": "tsx src/clients/whitehat-client.ts",
     "audit": "tsx src/clients/whitehat-client.ts",

@@ -4,6 +4,7 @@ import newsRoutes from "./news.routes";
 import auditRoutes from "./audit.routes";
 import walletRoutes from "./wallet.routes";
 import researchRoutes from "./research.routes";
+import sentimentRoutes from "./sentiment.routes";
 import { sendSuccess } from "../utils/response.utils";
 
 const router = Router();
@@ -17,7 +18,8 @@ router.get("/health", (_req, res) => {
       news: "GET /api/news",
       audit: "POST /api/audit",
       walletClassifier: "POST /api/wallet/classify",
-      userResearch: "POST /api/research/user"
+      userResearch: "POST /api/research/user",
+      sentimentAnalysis: "POST /api/sentiment"
     }
   });
 });
@@ -28,5 +30,6 @@ router.use("/api", newsRoutes);
 router.use("/api", auditRoutes);
 router.use("/api", walletRoutes);
 router.use("/api", researchRoutes);
+router.use("/api", sentimentRoutes);
 
 export default router;
