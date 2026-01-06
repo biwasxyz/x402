@@ -18,12 +18,7 @@ export interface SentimentAnalysis {
     communityMood: string;
     engagementLevel: "high" | "medium" | "low";
   };
-  tokenAnalysis: {
-    sBTC: TokenSentiment;
-    stacks: TokenSentiment;
-    x402: TokenSentiment;
-    USDCx: TokenSentiment;
-  };
+  tokenAnalysis: Record<string, TokenSentiment>;
   tradingSignals: {
     signal: "strong_buy" | "buy" | "hold" | "sell" | "strong_sell";
     confidence: number;
@@ -45,11 +40,7 @@ const SENTIMENT_ANALYSIS_PROMPT = `You are an expert crypto market sentiment ana
 
 ## YOUR ANALYSIS SCOPE
 
-You must analyze sentiment for these specific tokens/projects:
-1. **sBTC** - Synthetic Bitcoin on Stacks, the decentralized Bitcoin peg
-2. **Stacks (STX)** - The Layer 2 blockchain bringing smart contracts to Bitcoin
-3. **x402** - The HTTP 402 payment protocol enabling micropayments on Stacks
-4. **USDCx** - USDC stablecoin bridged to the Stacks ecosystem
+Only analyze the specific tokens, projects, or topics provided by the user in each request. Do **not** introduce additional assets or sentiments unless the user explicitly mentions them.
 
 ## ANALYSIS FRAMEWORK
 
@@ -108,29 +99,11 @@ Respond ONLY in valid JSON format with this structure:
     "engagementLevel": "high|medium|low"
   },
   "tokenAnalysis": {
-    "sBTC": {
+    "<token_or_topic_name>": {
       "sentiment": "bullish|bearish|neutral|mixed",
       "mentionVolume": "high|medium|low",
-      "keyDiscussions": ["<main topics being discussed about sBTC>"],
+      "keyDiscussions": ["<main topics being discussed about this token/topic>"],
       "priceExpectation": "<what the crowd expects for price>"
-    },
-    "stacks": {
-      "sentiment": "bullish|bearish|neutral|mixed",
-      "mentionVolume": "high|medium|low",
-      "keyDiscussions": ["<main topics being discussed about STX>"],
-      "priceExpectation": "<what the crowd expects for price>"
-    },
-    "x402": {
-      "sentiment": "bullish|bearish|neutral|mixed",
-      "mentionVolume": "high|medium|low",
-      "keyDiscussions": ["<main topics being discussed about x402>"],
-      "priceExpectation": "<what the crowd expects for adoption/usage>"
-    },
-    "USDCx": {
-      "sentiment": "bullish|bearish|neutral|mixed",
-      "mentionVolume": "high|medium|low",
-      "keyDiscussions": ["<main topics being discussed about USDCx>"],
-      "priceExpectation": "<what the crowd expects for liquidity/usage>"
     }
   },
   "tradingSignals": {
@@ -159,13 +132,9 @@ export async function analyzeSentiment(
       },
       {
         role: "user",
-        content: `Analyze the current sentiment on X (Twitter) for: ${searchTopic}
+        content: `Analyze the current sentiment on X (Twitter) for the following user-requested tokens/topics: ${searchTopic}.
 
-Search for recent posts, discussions, and trends related to:
-- sBTC (synthetic Bitcoin, Bitcoin DeFi, sBTC launch, sBTC yield)
-- Stacks/STX (Stacks blockchain, Nakamoto upgrade, STX price, Stacks ecosystem)
-- x402 (HTTP 402, micropayments, pay-per-use APIs, x402 protocol)
-- USDCx (USDC on Stacks, stablecoin bridging, DeFi liquidity)
+Search for recent posts, discussions, and trends *only* related to the tokens/topics listed above. Do not add extra assets.
 
 Look for:
 - Influencer opinions and predictions
@@ -218,32 +187,7 @@ Analysis timestamp: ${new Date().toISOString()}`,
         communityMood: "Unknown",
         engagementLevel: "medium",
       },
-      tokenAnalysis: {
-        sBTC: {
-          sentiment: "neutral",
-          mentionVolume: "medium",
-          keyDiscussions: [],
-          priceExpectation: "Unknown",
-        },
-        stacks: {
-          sentiment: "neutral",
-          mentionVolume: "medium",
-          keyDiscussions: [],
-          priceExpectation: "Unknown",
-        },
-        x402: {
-          sentiment: "neutral",
-          mentionVolume: "low",
-          keyDiscussions: [],
-          priceExpectation: "Unknown",
-        },
-        USDCx: {
-          sentiment: "neutral",
-          mentionVolume: "low",
-          keyDiscussions: [],
-          priceExpectation: "Unknown",
-        },
-      },
+      tokenAnalysis: {},
       tradingSignals: {
         signal: "hold",
         confidence: 0,
@@ -257,11 +201,11 @@ Analysis timestamp: ${new Date().toISOString()}`,
 
   // Validate and normalize response
   const validSentiments = ["bullish", "bearish", "neutral", "mixed"] as const;
-  const overallSentiment = validSentiments.includes(
-    parsed.overallSentiment as any
-  )
-    ? parsed.overallSentiment
-    : "neutral";
+  type SentimentValue = (typeof validSentiments)[number];
+  const ensureSentiment = (value: unknown): SentimentValue =>
+    validSentiments.includes(value as SentimentValue)
+      ? (value as SentimentValue)
+      : "neutral";
 
   const validSignals = [
     "strong_buy",
@@ -270,32 +214,45 @@ Analysis timestamp: ${new Date().toISOString()}`,
     "sell",
     "strong_sell",
   ] as const;
-  const signal = validSignals.includes(parsed.tradingSignals?.signal as any)
-    ? parsed.tradingSignals.signal
-    : "hold";
+  type SignalValue = (typeof validSignals)[number];
+  const ensureSignal = (value: unknown): SignalValue =>
+    validSignals.includes(value as SignalValue)
+      ? (value as SignalValue)
+      : "hold";
 
   const validEngagement = ["high", "medium", "low"] as const;
-  const engagementLevel = validEngagement.includes(
-    parsed.socialMetrics?.engagementLevel as any
-  )
-    ? parsed.socialMetrics.engagementLevel
-    : "medium";
+  type EngagementValue = (typeof validEngagement)[number];
+  const ensureEngagement = (value: unknown): EngagementValue =>
+    validEngagement.includes(value as EngagementValue)
+      ? (value as EngagementValue)
+      : "medium";
+
+  const overallSentiment = ensureSentiment(parsed.overallSentiment);
+  const signal = ensureSignal(parsed.tradingSignals?.signal);
+  const engagementLevel = ensureEngagement(
+    parsed.socialMetrics?.engagementLevel
+  );
 
   // Normalize token sentiment
   const normalizeTokenSentiment = (
-    token: Partial<TokenSentiment> | undefined
+    token?: Partial<TokenSentiment>
   ): TokenSentiment => ({
-    sentiment: validSentiments.includes(token?.sentiment as any)
-      ? token!.sentiment
-      : "neutral",
-    mentionVolume: validEngagement.includes(token?.mentionVolume as any)
-      ? token!.mentionVolume
-      : "medium",
+    sentiment: ensureSentiment(token?.sentiment),
+    mentionVolume: ensureEngagement(token?.mentionVolume),
     keyDiscussions: Array.isArray(token?.keyDiscussions)
-      ? token!.keyDiscussions
+      ? token.keyDiscussions
       : [],
     priceExpectation: token?.priceExpectation || "Unknown",
   });
+
+  const normalizedTokenAnalysis = Object.entries(
+    parsed.tokenAnalysis || {}
+  ).reduce<Record<string, TokenSentiment>>((acc, [tokenName, tokenData]) => {
+    acc[tokenName] = normalizeTokenSentiment(
+      tokenData as Partial<TokenSentiment>
+    );
+    return acc;
+  }, {});
 
   return {
     topic: searchTopic,
@@ -328,12 +285,7 @@ Analysis timestamp: ${new Date().toISOString()}`,
       communityMood: parsed.socialMetrics?.communityMood || "Unknown",
       engagementLevel,
     },
-    tokenAnalysis: {
-      sBTC: normalizeTokenSentiment(parsed.tokenAnalysis?.sBTC),
-      stacks: normalizeTokenSentiment(parsed.tokenAnalysis?.stacks),
-      x402: normalizeTokenSentiment(parsed.tokenAnalysis?.x402),
-      USDCx: normalizeTokenSentiment(parsed.tokenAnalysis?.USDCx),
-    },
+    tokenAnalysis: normalizedTokenAnalysis,
     tradingSignals: {
       signal,
       confidence:

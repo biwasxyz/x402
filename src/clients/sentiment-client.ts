@@ -138,10 +138,14 @@ async function main() {
     console.log(`   Reasoning: ${data.tradingSignals.reasoning}`);
 
     console.log("\n🪙 TOKEN ANALYSIS:");
-    displayTokenSentiment("sBTC", data.tokenAnalysis.sBTC);
-    displayTokenSentiment("STX/Stacks", data.tokenAnalysis.stacks);
-    displayTokenSentiment("x402", data.tokenAnalysis.x402);
-    displayTokenSentiment("USDCx", data.tokenAnalysis.USDCx);
+    const tokenEntries = Object.entries(data.tokenAnalysis || {});
+    if (tokenEntries.length === 0) {
+      console.log("   No token-specific analysis provided.");
+    } else {
+      tokenEntries.forEach(([tokenName, tokenData]) =>
+        displayTokenSentiment(tokenName, tokenData)
+      );
+    }
 
     console.log("\n📊 MARKET INSIGHTS:");
     console.log(`   Short-term Outlook: ${data.marketInsights.shortTermOutlook}`);
