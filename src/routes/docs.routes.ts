@@ -26,6 +26,16 @@ function buildDocsOverview(req: Request) {
         cost: "0.001 STX",
         payment: "Required via x402 protocol",
       },
+      sentiment: {
+        path: "/api/sentiment",
+        method: "POST",
+        description: "Analyze real-time sentiment for user-requested tokens or topics from X/Twitter",
+        cost: "0.005 STX",
+        payment: "Required via x402 protocol",
+        body: {
+          topic: "Comma-separated tokens or topics (optional)",
+        },
+      },
       audit: {
         path: "/api/audit",
         method: "POST",
@@ -125,6 +135,10 @@ function getOpenApiSpec(req: Request) {
         description: "Stacks & Bitcoin news powered by AI",
       },
       {
+        name: "Sentiment",
+        description: "Real-time sentiment across user-specified tokens/topics",
+      },
+      {
         name: "Audit",
         description: "Smart contract security audits",
       },
@@ -162,6 +176,7 @@ function getOpenApiSpec(req: Request) {
                             type: "object",
                             properties: {
                               news: { type: "string", example: "GET /api/news" },
+                              sentiment: { type: "string", example: "POST /api/sentiment" },
                               audit: { type: "string", example: "POST /api/audit" },
                               walletClassifier: { type: "string", example: "POST /api/wallet/classify" },
                               userResearch: { type: "string", example: "POST /api/research/user" },
@@ -212,6 +227,89 @@ function getOpenApiSpec(req: Request) {
                 "application/json": {
                   schema: {
                     $ref: "#/components/schemas/NewsResponse",
+                  },
+                },
+              },
+            },
+            "402": {
+              description: "Payment Required",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/PaymentRequired",
+                  },
+                },
+              },
+            },
+            "500": {
+              description: "Server error",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/Error",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/api/sentiment": {
+        post: {
+          tags: ["Sentiment"],
+          summary: "Analyze sentiment for user-requested tokens",
+          description: "AI-powered sentiment analysis of specified tokens/topics using real-time X/Twitter data. **Cost: 0.005 STX**",
+          operationId: "analyzeSentiment",
+          security: [{ x402Payment: [] }],
+          parameters: [
+            {
+              name: "x-payment-tx-id",
+              in: "header",
+              description: "x402 payment transaction ID",
+              required: false,
+              schema: { type: "string" },
+            },
+          ],
+          requestBody: {
+            required: false,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    topic: {
+                      type: "string",
+                      description: "Comma-separated tokens or topics to analyze (optional). Defaults to core ecosystem topics when omitted.",
+                      example: "STX, BTC, sBTC",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "Sentiment analysis completed successfully",
+              headers: {
+                "x-payment-response": {
+                  description: "x402 payment confirmation",
+                  schema: { type: "string" },
+                },
+              },
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/SentimentResponse",
+                  },
+                },
+              },
+            },
+            "400": {
+              description: "Invalid request",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/Error",
                   },
                 },
               },
@@ -643,6 +741,107 @@ function getOpenApiSpec(req: Request) {
                 timestamp: { type: "string", format: "date-time" },
                 payment: { $ref: "#/components/schemas/PaymentInfo" },
               },
+            },
+          },
+        },
+        SentimentResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            data: {
+              type: "object",
+              properties: {
+                topic: {
+                  type: "string",
+                  description: "Requested tokens/topics",
+                  example: "sBTC, STX, x402",
+                },
+                timestamp: { type: "string", format: "date-time" },
+                overallSentiment: {
+                  type: "string",
+                  enum: ["bullish", "bearish", "neutral", "mixed"],
+                  example: "bullish",
+                },
+                sentimentScore: {
+                  type: "number",
+                  minimum: -100,
+                  maximum: 100,
+                  example: 28,
+                },
+                summary: { type: "string", example: "Stacks sentiment remains constructive..." },
+                marketInsights: {
+                  type: "object",
+                  properties: {
+                    shortTermOutlook: { type: "string" },
+                    keyDrivers: { type: "array", items: { type: "string" } },
+                    riskFactors: { type: "array", items: { type: "string" } },
+                    opportunities: { type: "array", items: { type: "string" } },
+                  },
+                },
+                socialMetrics: {
+                  type: "object",
+                  properties: {
+                    trendingTopics: { type: "array", items: { type: "string" } },
+                    influencerSentiment: { type: "string" },
+                    communityMood: { type: "string" },
+                    engagementLevel: {
+                      type: "string",
+                      enum: ["high", "medium", "low"],
+                    },
+                  },
+                },
+                tokenAnalysis: {
+                  type: "object",
+                  additionalProperties: {
+                    $ref: "#/components/schemas/TokenSentiment",
+                  },
+                },
+                tradingSignals: {
+                  type: "object",
+                  properties: {
+                    signal: {
+                      type: "string",
+                      enum: ["strong_buy", "buy", "hold", "sell", "strong_sell"],
+                    },
+                    confidence: { type: "integer", minimum: 0, maximum: 100 },
+                    reasoning: { type: "string" },
+                    timeframe: { type: "string" },
+                  },
+                },
+                notableEvents: { type: "array", items: { type: "string" } },
+                sources: { type: "array", items: { type: "string" } },
+              },
+            },
+            meta: {
+              type: "object",
+              properties: {
+                timestamp: { type: "string", format: "date-time" },
+                payment: { $ref: "#/components/schemas/PaymentInfo" },
+              },
+            },
+          },
+        },
+        TokenSentiment: {
+          type: "object",
+          properties: {
+            sentiment: {
+              type: "string",
+              enum: ["bullish", "bearish", "neutral", "mixed"],
+              example: "neutral",
+            },
+            mentionVolume: {
+              type: "string",
+              enum: ["high", "medium", "low"],
+              example: "medium",
+            },
+            keyDiscussions: {
+              type: "array",
+              items: { type: "string" },
+              example: ["Stacks Nakamoto upgrade timelines"],
+            },
+            priceExpectation: {
+              type: "string",
+              example: "Range-bound with upside on catalyst confirmation",
             },
           },
         },
