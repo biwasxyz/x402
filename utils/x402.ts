@@ -68,19 +68,7 @@ export async function createApiClient() {
 }
 
 export function printResponse(response: any) {
-  const { settlement, ...restData } = response.data || {};
-
-  const output = {
-    status: response.status,
-    statusText: response.statusText,
-    headers: response.headers["x-payment-response"]
-      ? { "x-payment-response": response.headers["x-payment-response"] }
-      : undefined,
-    settlement,
-    data: restData,
-  };
-
-  console.log(JSON.stringify(output, null, 2));
+  console.log(JSON.stringify(response.data ?? null, null, 2));
 }
 
 export function handleAxiosError(error: unknown): never {

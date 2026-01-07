@@ -127,7 +127,7 @@ async function handleNews(request: Request, config: RuntimeConfig): Promise<Resp
     }
 
     const news = await getStacksAndBitcoinNews();
-    return sendSuccess({ news }, 200, paymentResult.settlement);
+    return sendSuccess(news, 200, paymentResult.settlement);
   } catch (error) {
     console.error("News error:", error);
     return sendError(
