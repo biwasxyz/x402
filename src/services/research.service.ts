@@ -1,4 +1,4 @@
-import { openrouter } from "./openrouter.service";
+import { getOpenRouter } from "./openrouter.service";
 
 export interface UserResearch {
   username: string;
@@ -19,6 +19,7 @@ export async function researchUser(username: string): Promise<UserResearch> {
   }
 
   // Use grok-4.1-fast with online search capability
+  const openrouter = getOpenRouter();
   const completion = await openrouter.chat.send({
     model: "x-ai/grok-4.1-fast:online",
     messages: [

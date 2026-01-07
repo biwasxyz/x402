@@ -1,0 +1,14 @@
+{
+  "name": "x402-worker",
+  "main": "src/worker.ts",
+  "compatibility_date": "2025-01-07",
+  "compatibility_flags": ["nodejs_compat"],
+  "node_compat": true,
+  "vars": {
+    "NETWORK": "testnet",
+    "SERVER_ADDRESS": "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM",
+    "FACILITATOR_URL": "https://facilitator.x402stacks.xyz"
+  }
+  // Note: Set OPENROUTER_API_KEY as a secret using:
+  // wrangler secret put OPENROUTER_API_KEY
+}

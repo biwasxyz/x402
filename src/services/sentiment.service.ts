@@ -1,4 +1,4 @@
-import { openrouter } from "./openrouter.service";
+import { getOpenRouter } from "./openrouter.service";
 
 export interface SentimentAnalysis {
   topic: string;
@@ -119,6 +119,7 @@ Respond ONLY in valid JSON format with this structure:
 export async function analyzeSentiment(
   topic?: string
 ): Promise<SentimentAnalysis> {
+  const openrouter = getOpenRouter();
   const searchTopic =
     topic?.trim() || "sBTC, Stacks, STX, x402, USDCx ecosystem";
 
