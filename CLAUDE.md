@@ -6,7 +6,7 @@ Cloudflare Worker that implements the x402-stacks payment protocol for AI-powere
 ## Key Commands
 - `npm install` - Install dependencies.
 - `npm run dev` - Run the Worker locally (wrangler dev).
-- `npm run deploy` - Deploy to Cloudflare.
+- `npm run deploy` - Deploy to Cloudflare (prefer CI/CD over direct deploy).
 - `npm run test:client -- /api/news` - Exercise a paid endpoint with the client script.
 - `bun run scripts/<name>.ts` - Quick endpoint probes (requires `CLIENT_MNEMONIC`).
 
@@ -24,16 +24,59 @@ Environment variables (local or via `wrangler secret put`):
 
 ## Knowledge Base References
 Use the local knowledge base for Stacks/Clarity and protocol guidance: `/Users/biwas/claudex402/claude-knowledge`.
-Recommended files:
-- `context/clarity-reference.md` for Clarity language reference.
-- `decisions/0002-clarity-design-principles.md` for contract design rules.
-- `patterns/clarity-testing.md` for testing tooling patterns.
-- `runbook/clarity-development.md` for Clarity dev workflows and checklists.
-- `context/siws-guide.md` and `context/sip-siws.md` for SIWS auth flows.
-- `context/tenero-api.md` and `downloads/2025-01-06-tenero-openapi-spec.json` for market data APIs.
+
+### Quick Reference (Nuggets)
+Fast lookups for common facts and gotchas:
+- `nuggets/stacks.md` - Tenero API, SIWS, SIP-018 signing standards quick reference.
+- `nuggets/clarity.md` - Core principles, gotchas, error handling, testing commands.
+- `nuggets/cloudflare.md` - Worker deployment best practices.
+- `nuggets/node.md` - Node.js and TypeScript tooling tips.
+- `nuggets/github.md` - GitHub API, Actions, and Pages workflows.
+- `nuggets/git.md` - Git workflow tips and commands.
+
+### Deep Reference (Context)
+Comprehensive documentation for detailed guidance:
+- `context/clarity-reference.md` - Complete Clarity language reference.
+- `context/siws-guide.md` and `context/sip-siws.md` - SIWS auth flows and implementation.
+- `context/sip-018.md` - Signed Structured Data standard for on-chain verification.
+- `context/tenero-api.md` and `downloads/2025-01-06-tenero-openapi-spec.json` - Market data APIs.
+
+### Patterns & Best Practices
+Reusable code patterns and architectural guidance:
+- `patterns/clarity-patterns.md` - Comprehensive Clarity code patterns (public functions, events, error handling, bit flags, multi-send, whitelisting, DAO proposals, fixed-point math, treasury patterns).
+- `patterns/clarity-testing.md` - Testing tooling and patterns for Clarity contracts.
+
+### Architectural Decisions
+Design principles and workflow patterns:
+- `decisions/0002-clarity-design-principles.md` - Contract design rules and security patterns.
+- `decisions/0001-workflow-component-design.md` - Development workflow component patterns (OODA loop, planning flows, composable workflows).
+
+### Runbooks
+Step-by-step operational guides:
+- `runbook/clarity-development.md` - Clarity dev workflows and checklists.
+- `runbook/setup-github-pat.md` - GitHub Personal Access Token setup.
+- `runbook/setup-github-pages-just-the-docs.md` - Documentation site deployment.
 
 ## Claude Workflow Hooks
-The knowledge base supports:
-- `/gather` to pull context before work.
-- `/report` to capture session summaries.
-- `reflect` skill for workflow improvements.
+The knowledge base supports composable workflow commands and skills:
+
+### Commands (User-Initiated)
+- `/sync` - Pull latest from repositories.
+- `/gather` - Pull relevant context before work.
+- `/plan` - Spawn Plan agent for implementation strategy.
+- `/report` - Generate session summaries.
+- `/status` - Quick status check of current state.
+- `/build` - Run build pipeline.
+- `/pr` - Create/manage pull request.
+- `/preview` - Deploy to preview environment.
+- `/ship` - Production deployment (requires confirmation).
+
+### Skills (Proactive)
+- `reflect` - Review and suggest workflow improvements.
+- `/execute` - Orchestrate build/test during coding (proactive).
+- `/pick_whoabuddy_brain` - Sync and apply latest claude-knowledge updates.
+
+### Composable Workflows
+**Planning Session**: `/sync` → `/gather` → `/plan` → [work] → `/report` → `reflect`
+**Feature Development**: `/plan` → `/execute` → `/build` → `/pr` → `/preview` → `/ship`
+**Quick Fix**: `/status` → [fix] → `/build` → `/pr` → `/ship`
