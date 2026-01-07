@@ -1,6 +1,4 @@
-import axios from "axios";
-import { openrouter } from "./openrouter.service";
-import { STACKS_API_URL } from "./stacks.service";
+import { getOpenRouter } from "./openrouter.service";
 
 export type WalletClassification = "trader" | "dao" | "bridge" | "bot" | "whale";
 
@@ -54,29 +52,33 @@ interface HiroBalances {
   non_fungible_tokens: Record<string, { count: number }>;
 }
 
-async function getWalletTransactions(address: string): Promise<HiroTransaction[]> {
-  const url = `${STACKS_API_URL}/extended/v1/address/${address}/transactions?limit=50`;
+async function getWalletTransactions(address: string, stacksApiUrl: string): Promise<HiroTransaction[]> {
+  const url = `${stacksApiUrl}/extended/v1/address/${address}/transactions?limit=50`;
 
-  try {
-    const response = await axios.get(url);
-    return response.data.results || [];
-  } catch (error: any) {
-    if (error.response?.status === 404) {
-      return [];
-    }
-    throw new Error(`Failed to fetch transactions: ${error.message}`);
+  const response = await fetch(url);
+  if (response.status === 404) {
+    return [];
   }
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch transactions: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  const txData = data as { results?: HiroTransaction[] };
+  return txData.results || [];
 }
 
-async function getWalletBalances(address: string): Promise<HiroBalances> {
-  const url = `${STACKS_API_URL}/extended/v1/address/${address}/balances`;
+async function getWalletBalances(address: string, stacksApiUrl: string): Promise<HiroBalances> {
+  const url = `${stacksApiUrl}/extended/v1/address/${address}/balances`;
 
-  try {
-    const response = await axios.get(url);
-    return response.data;
-  } catch (error: any) {
-    throw new Error(`Failed to fetch balances: ${error.message}`);
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch balances: ${response.statusText}`);
   }
+
+  const data = await response.json();
+  return data as HiroBalances;
 }
 
 function calculateMetrics(
@@ -136,7 +138,7 @@ function calculateMetrics(
   };
 }
 
-export async function classifyWallet(address: string): Promise<WalletAnalysis> {
+export async function classifyWallet(address: string, stacksApiUrl: string): Promise<WalletAnalysis> {
   // Validate address format
   if (!address.match(/^S[PM][A-Z0-9]{38,}$/i)) {
     throw new Error("Invalid Stacks address format");
@@ -144,8 +146,8 @@ export async function classifyWallet(address: string): Promise<WalletAnalysis> {
 
   // Fetch wallet data from Hiro API
   const [balances, transactions] = await Promise.all([
-    getWalletBalances(address),
-    getWalletTransactions(address),
+    getWalletBalances(address, stacksApiUrl),
+    getWalletTransactions(address, stacksApiUrl),
   ]);
 
   const metrics = calculateMetrics(balances, transactions);
@@ -169,6 +171,7 @@ Contract Interactions:
 ${[...new Set(transactions.filter(tx => tx.contract_call).map(tx => tx.contract_call?.contract_id))].slice(0, 10).join("\n")}
 `;
 
+  const openrouter = getOpenRouter();
   const completion = await openrouter.chat.send({
     model: "x-ai/grok-4.1-fast",
     messages: [

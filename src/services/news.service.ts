@@ -1,6 +1,7 @@
-import { openrouter } from "./openrouter.service";
+import { getOpenRouter } from "./openrouter.service";
 
 export async function getStacksAndBitcoinNews(): Promise<string> {
+  const openrouter = getOpenRouter();
   const completion = await openrouter.chat.send({
     model: "x-ai/grok-4.1-fast",
     messages: [

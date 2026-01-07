@@ -1,18 +1,16 @@
 import { generateWallet, getStxAddress } from "@stacks/wallet-sdk";
 
+export type Network = "mainnet" | "testnet";
+
 export interface Account {
   address: string;
   privateKey: string;
-  network: "mainnet" | "testnet";
+  network: Network;
 }
 
-/**
- * Create an account from an existing mnemonic phrase
- * Does NOT generate - only converts your existing mnemonic to account details
- */
 export async function mnemonicToAccount(
   mnemonic: string,
-  network: "mainnet" | "testnet" = "testnet"
+  network: Network
 ): Promise<Account> {
   const wallet = await generateWallet({
     secretKey: mnemonic,
@@ -20,10 +18,7 @@ export async function mnemonicToAccount(
   });
 
   const account = wallet.accounts[0];
-  const address = getStxAddress({
-    account,
-    transactionVersion: network === "mainnet" ? 0x00 : 0x80,
-  });
+  const address = getStxAddress(account, network);
 
   return {
     address,

@@ -1,0 +1,16 @@
+name = "x402-api"
+main = "src/worker.ts"
+compatibility_date = "2024-12-01"
+account_id = "c4cd2fdc1a3327a4fcec8c151333c267"
+
+[observability]
+enabled = true
+
+# Development environment variables (use wrangler secret for production)
+[vars]
+NETWORK = "testnet"
+SERVER_ADDRESS = "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM"
+FACILITATOR_URL = "https://facilitator.x402stacks.xyz"
+
+# Set OPENROUTER_API_KEY as a secret:
+# wrangler secret put OPENROUTER_API_KEY

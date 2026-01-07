@@ -1,10 +1,25 @@
 import { OpenRouter } from "@openrouter/sdk";
 
-if (!process.env.OPENROUTER_API_KEY) {
-  console.error("❌ OPENROUTER_API_KEY not set in .env");
-  process.exit(1);
+let client: OpenRouter | null = null;
+let currentApiKey: string | null = null;
+
+export function initOpenRouter(apiKey?: string) {
+  if (!apiKey) {
+    throw new Error("OPENROUTER_API_KEY is not configured");
+  }
+
+  if (!client || currentApiKey !== apiKey) {
+    client = new OpenRouter({ apiKey });
+    currentApiKey = apiKey;
+  }
+
+  return client;
 }
 
-export const openrouter = new OpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY,
-});
+export function getOpenRouter() {
+  if (!client) {
+    throw new Error("OpenRouter client has not been initialized");
+  }
+
+  return client;
+}

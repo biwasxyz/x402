@@ -1,4 +1,4 @@
-import { openrouter } from "./openrouter.service";
+import { getOpenRouter } from "./openrouter.service";
 
 const CLARITY_SECURITY_KNOWLEDGE = `
 # Clarity Smart Contract Security Analysis Framework
@@ -108,6 +108,7 @@ export async function performSecurityAudit(
 ): Promise<AnalysisResult> {
   console.log(`  Performing comprehensive analysis for ${contractName}...`);
 
+  const openrouter = getOpenRouter();
   const completion = await openrouter.chat.send({
     model: "anthropic/claude-3.5-sonnet",
     messages: [

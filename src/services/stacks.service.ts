@@ -1,32 +1,35 @@
-import axios from "axios";
+export type StacksNetwork = "mainnet" | "testnet";
 
-const NETWORK = (process.env.NETWORK as "mainnet" | "testnet") || "testnet";
-const STACKS_API_URL = NETWORK === "mainnet"
-  ? "https://api.mainnet.hiro.so"
-  : "https://api.testnet.hiro.so";
+export function getStacksApiUrl(network: StacksNetwork): string {
+  return network === "mainnet"
+    ? "https://api.mainnet.hiro.so"
+    : "https://api.testnet.hiro.so";
+}
 
-export async function getContractSource(contractIdentifier: string): Promise<string> {
+export async function getContractSource(contractIdentifier: string, stacksApiUrl: string): Promise<string> {
   const [address, contractName] = contractIdentifier.split(".");
 
   if (!address || !contractName) {
     throw new Error("Invalid contract identifier. Format: ADDRESS.CONTRACT_NAME");
   }
 
-  const url = `${STACKS_API_URL}/v2/contracts/source/${address}/${contractName}`;
+  const url = `${stacksApiUrl}/v2/contracts/source/${address}/${contractName}`;
   console.log(`[stacks.service] Fetching Clarity source: ${contractIdentifier} (${url})`);
 
-  try {
-    const response = await axios.get(url);
-    if (response.data && response.data.source) {
-      return response.data.source;
-    }
-    throw new Error("Contract source code not found");
-  } catch (error: any) {
-    if (error.response?.status === 404) {
-      throw new Error(`Contract not found: ${contractIdentifier}`);
-    }
-    throw new Error(`Failed to fetch contract: ${error.message}`);
-  }
-}
+  const response = await fetch(url);
 
-export { STACKS_API_URL };
+  if (response.status === 404) {
+    throw new Error(`Contract not found: ${contractIdentifier}`);
+  }
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch contract: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  const contractData = data as { source?: string };
+  if (contractData && contractData.source) {
+    return contractData.source;
+  }
+  throw new Error("Contract source code not found");
+}
