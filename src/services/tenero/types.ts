@@ -113,16 +113,62 @@ export interface HourlyNetflow {
 }
 
 // Pool Types
+export interface PoolMetrics {
+  volume_30m_usd?: number;
+  volume_1h_usd?: number;
+  volume_4h_usd?: number;
+  volume_1d_usd?: number;
+  volume_7d_usd?: number;
+  swaps_30m?: number;
+  swaps_1h?: number;
+  swaps_4h?: number;
+  swaps_1d?: number;
+  swaps_7d?: number;
+  buys_1d?: number;
+  sells_1d?: number;
+  buy_volume_1d_usd?: number;
+  sell_volume_1d_usd?: number;
+}
+
+export interface PoolPriceData {
+  current_price?: number;
+  price_1h?: number;
+  price_4h?: number;
+  price_1d?: number;
+  price_7d?: number;
+  price_change_1h_pct?: number | null;
+  price_change_4h_pct?: number | null;
+  price_change_1d_pct?: number | null;
+  price_change_7d_pct?: number | null;
+}
+
 export interface TrendingPool {
   pool_id: string;
   pool_platform: string;
-  base_token: TokenInfo;
-  quote_token: TokenInfo;
-  volume_24h?: number;
-  volume_change_24h?: number;
-  price_change_24h?: number;
-  tvl?: number;
-  apr?: number;
+  pool_platform_key?: string;
+  pool_address?: string;
+  base_token_address: string;
+  base_token: TokenInfo & {
+    decimals?: number;
+    deployer_address?: string;
+    holder_count?: number;
+    total_supply?: number;
+    circulating_supply?: number;
+  };
+  quote_token_address: string;
+  quote_token: TokenInfo & {
+    decimals?: number;
+    deployer_address?: string;
+    holder_count?: number;
+    total_supply?: number;
+    circulating_supply?: number;
+  };
+  liquidity_usd?: number;
+  base_token_price_usd?: number;
+  quote_token_price_usd?: number;
+  marketcap_usd?: number;
+  metrics?: PoolMetrics;
+  price?: PoolPriceData;
 }
 
 export interface PoolOhlc {
@@ -196,7 +242,7 @@ export interface WalletPnlDistribution {
 }
 
 // Query parameter types
-export type TrendingTimeframe = "1h" | "4h" | "24h" | "7d";
+export type TrendingTimeframe = "1h" | "4h" | "1d" | "24h" | "7d";
 
 export interface OhlcParams {
   period?: "1m" | "5m" | "15m" | "1h" | "4h" | "1d";
