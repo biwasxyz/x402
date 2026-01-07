@@ -1,0 +1,23 @@
+title: x402-stacks API
+description: Documentation for the x402-stacks payment-enabled Stacks analytics API.
+baseurl: ""
+url: ""
+
+theme: just-the-docs
+color_scheme: dark
+search_enabled: true
+heading_anchors: true
+enable_copy_code_button: true
+
+callouts:
+  free:
+    title: Free Endpoint
+    color: green
+  paid:
+    title: Paid Endpoint
+    color: orange
+  note:
+    title: Note
+    color: blue
+
+footer_content: "x402-stacks API documentation"
