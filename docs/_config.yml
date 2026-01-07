@@ -29,7 +29,7 @@ callouts:
     color: green
   paid:
     title: Paid Endpoint
-    color: orange
+    color: yellow
   note:
     title: Note
     color: blue
