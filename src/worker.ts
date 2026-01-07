@@ -20,6 +20,7 @@ import { TeneroApiError } from "./services/tenero/client";
 import { getTrendingPools, getPoolOhlc } from "./services/tenero-pools.service";
 import { getTokenSummary, getTokenDetails } from "./services/tenero-tokens.service";
 import { TrendingTimeframe } from "./services/tenero/types";
+import { analyzeWalletTrading, analyzeWalletPnl } from "./services/tenero-wallets.service";
 
 
 type Env = EnvBindings & Record<string, string | undefined>;
@@ -112,6 +113,19 @@ const ENDPOINTS: Record<string, EndpointConfig> = {
     description: "Full token details including supply and holders",
     method: "POST",
     amountSTX: 0.003,
+  },
+  // Tenero Wallet Analytics (AI-Enhanced)
+  "/api/wallet/trading": {
+    resource: "/api/wallet/trading",
+    description: "AI-enhanced wallet trading behavior analysis",
+    method: "POST",
+    amountSTX: 0.005,
+  },
+  "/api/wallet/pnl": {
+    resource: "/api/wallet/pnl",
+    description: "AI-enhanced wallet profit/loss analysis",
+    method: "POST",
+    amountSTX: 0.005,
   },
 };
 
@@ -236,6 +250,15 @@ export default {
 
     if (method === "POST" && url.pathname === "/api/tokens/details") {
       return handleTokensDetails(request, config);
+    }
+
+    // Tenero Wallet Analytics (AI-Enhanced)
+    if (method === "POST" && url.pathname === "/api/wallet/trading") {
+      return handleWalletTrading(request, config);
+    }
+
+    if (method === "POST" && url.pathname === "/api/wallet/pnl") {
+      return handleWalletPnl(request, config);
     }
 
     return sendError("Not Found", 404, "NOT_FOUND");
@@ -653,6 +676,76 @@ async function handleTokensDetails(request: Request, config: RuntimeConfig): Pro
       error instanceof Error ? error.message : "Failed to fetch token details",
       500,
       "TOKEN_DETAILS_ERROR"
+    );
+  }
+}
+
+// Tenero Wallet Analytics Handlers (AI-Enhanced)
+
+async function handleWalletTrading(request: Request, config: RuntimeConfig): Promise<Response> {
+  const endpointConfig = ENDPOINTS["/api/wallet/trading"];
+  const body = await parseJsonBody(request);
+
+  if (body.error) {
+    return body.error;
+  }
+
+  try {
+    const paymentResult = await requirePayment(request, config, endpointConfig);
+    if (!paymentResult.ok) {
+      return (paymentResult as PaymentFailure).response;
+    }
+
+    const { address } = body.data as { address?: string };
+    if (!address) {
+      return sendError("address is required", 400, "MISSING_FIELD");
+    }
+
+    const analysis = await analyzeWalletTrading(address);
+    return sendSuccess(analysis, 200, paymentResult.settlement);
+  } catch (error) {
+    console.error("Wallet trading analysis error:", error);
+    if (error instanceof TeneroApiError) {
+      return sendError(`Tenero API unavailable: ${error.message}`, 502, "TENERO_API_ERROR");
+    }
+    return sendError(
+      error instanceof Error ? error.message : "Failed to analyze wallet trading",
+      500,
+      "WALLET_TRADING_ERROR"
+    );
+  }
+}
+
+async function handleWalletPnl(request: Request, config: RuntimeConfig): Promise<Response> {
+  const endpointConfig = ENDPOINTS["/api/wallet/pnl"];
+  const body = await parseJsonBody(request);
+
+  if (body.error) {
+    return body.error;
+  }
+
+  try {
+    const paymentResult = await requirePayment(request, config, endpointConfig);
+    if (!paymentResult.ok) {
+      return (paymentResult as PaymentFailure).response;
+    }
+
+    const { address } = body.data as { address?: string };
+    if (!address) {
+      return sendError("address is required", 400, "MISSING_FIELD");
+    }
+
+    const analysis = await analyzeWalletPnl(address);
+    return sendSuccess(analysis, 200, paymentResult.settlement);
+  } catch (error) {
+    console.error("Wallet PnL analysis error:", error);
+    if (error instanceof TeneroApiError) {
+      return sendError(`Tenero API unavailable: ${error.message}`, 502, "TENERO_API_ERROR");
+    }
+    return sendError(
+      error instanceof Error ? error.message : "Failed to analyze wallet PnL",
+      500,
+      "WALLET_PNL_ERROR"
     );
   }
 }
