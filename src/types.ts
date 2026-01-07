@@ -29,11 +29,26 @@ export interface PaymentInfo {
   sender: string;
 }
 
+export interface SettlementInfo {
+  success?: boolean;
+  tx_id?: string;
+  token_type?: string;
+  sender_address?: string;
+  recipient_address?: string;
+  amount?: number | string;
+  fee?: number;
+  status?: string;
+  block_height?: number;
+  network?: string;
+  validation_errors?: string[];
+  error?: string;
+}
+
 export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: ErrorDetails;
-  meta?: ResponseMeta;
+  settlement?: SettlementInfo;
 }
 
 export interface ErrorDetails {
@@ -44,7 +59,4 @@ export interface ErrorDetails {
 
 export interface ResponseMeta {
   timestamp: string;
-  requestId?: string;
-  payment?: PaymentInfo;
-  [key: string]: unknown;
 }

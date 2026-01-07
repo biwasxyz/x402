@@ -8,7 +8,7 @@ enabled = true
 # Development environment variables (use wrangler secret for production)
 [vars]
 NETWORK = "testnet"
-SERVER_ADDRESS = "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM"
+SERVER_ADDRESS = "SP1M8KHCJXB3SBRQRDBCG3J3859AA1CN0AWDHN17B"
 FACILITATOR_URL = "https://facilitator.x402stacks.xyz"
 
 # Set OPENROUTER_API_KEY as a secret:

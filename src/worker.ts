@@ -10,6 +10,7 @@ import { classifyWallet } from "./services/wallet.service";
 import { researchUser } from "./services/research.service";
 import { analyzeSentiment } from "./services/sentiment.service";
 
+
 type Env = EnvBindings & Record<string, string | undefined>;
 
 // x402-stacks Endpoint Configurations (prices in STX)
@@ -119,18 +120,14 @@ export default {
 
 async function handleNews(request: Request, config: RuntimeConfig): Promise<Response> {
   const endpointConfig = ENDPOINTS["/api/news"];
-  const paymentResult = await requirePayment(request, config, endpointConfig);
-
-  if (!paymentResult.ok) {
-    return (paymentResult as PaymentFailure).response;
-  }
-
   try {
+    const paymentResult = await requirePayment(request, config, endpointConfig);
+    if (!paymentResult.ok) {
+      return (paymentResult as PaymentFailure).response;
+    }
+
     const news = await getStacksAndBitcoinNews();
-    return attachPaymentHeader(
-      sendSuccess({ news }, 200, paymentResult.payment),
-      paymentResult.paymentHeader
-    );
+    return sendSuccess({ news }, 200, paymentResult.settlement);
   } catch (error) {
     console.error("News error:", error);
     return sendError(
@@ -149,12 +146,12 @@ async function handleAudit(request: Request, config: RuntimeConfig): Promise<Res
     return body.error;
   }
 
-  const paymentResult = await requirePayment(request, config, endpointConfig);
-  if (!paymentResult.ok) {
-    return (paymentResult as PaymentFailure).response;
-  }
-
   try {
+    const paymentResult = await requirePayment(request, config, endpointConfig);
+    if (!paymentResult.ok) {
+      return (paymentResult as PaymentFailure).response;
+    }
+
     const { contractIdentifier } = body.data as { contractIdentifier?: string };
     if (!contractIdentifier) {
       return sendError("contractIdentifier is required", 400, "MISSING_FIELD");
@@ -162,12 +159,13 @@ async function handleAudit(request: Request, config: RuntimeConfig): Promise<Res
 
     const sourceCode = await getContractSource(contractIdentifier, config.stacksApiUrl);
     const [, contractName] = contractIdentifier.split(".");
-    const auditResult = await performSecurityAudit(sourceCode, contractName, contractIdentifier);
-
-    return attachPaymentHeader(
-      sendSuccess(auditResult, 200, paymentResult.payment),
-      paymentResult.paymentHeader
+    const auditResult = await performSecurityAudit(
+      sourceCode,
+      contractName,
+      contractIdentifier
     );
+
+    return sendSuccess(auditResult, 200, paymentResult.settlement);
   } catch (error) {
     console.error("Audit error:", error);
     return sendError(
@@ -186,12 +184,12 @@ async function handleWalletClassify(request: Request, config: RuntimeConfig): Pr
     return body.error;
   }
 
-  const paymentResult = await requirePayment(request, config, endpointConfig);
-  if (!paymentResult.ok) {
-    return (paymentResult as PaymentFailure).response;
-  }
-
   try {
+    const paymentResult = await requirePayment(request, config, endpointConfig);
+    if (!paymentResult.ok) {
+      return (paymentResult as PaymentFailure).response;
+    }
+
     const { address } = body.data as { address?: string };
     if (!address) {
       return sendError("address is required", 400, "MISSING_FIELD");
@@ -199,10 +197,7 @@ async function handleWalletClassify(request: Request, config: RuntimeConfig): Pr
 
     const analysis = await classifyWallet(address, config.stacksApiUrl);
 
-    return attachPaymentHeader(
-      sendSuccess(analysis, 200, paymentResult.payment),
-      paymentResult.paymentHeader
-    );
+    return sendSuccess(analysis, 200, paymentResult.settlement);
   } catch (error) {
     console.error("Wallet classify error:", error);
     return sendError(
@@ -221,12 +216,12 @@ async function handleResearchUser(request: Request, config: RuntimeConfig): Prom
     return body.error;
   }
 
-  const paymentResult = await requirePayment(request, config, endpointConfig);
-  if (!paymentResult.ok) {
-    return (paymentResult as PaymentFailure).response;
-  }
-
   try {
+    const paymentResult = await requirePayment(request, config, endpointConfig);
+    if (!paymentResult.ok) {
+      return (paymentResult as PaymentFailure).response;
+    }
+
     const { username } = body.data as { username?: string };
     if (!username) {
       return sendError("username is required", 400, "MISSING_FIELD");
@@ -234,10 +229,7 @@ async function handleResearchUser(request: Request, config: RuntimeConfig): Prom
 
     const research = await researchUser(username);
 
-    return attachPaymentHeader(
-      sendSuccess(research, 200, paymentResult.payment),
-      paymentResult.paymentHeader
-    );
+    return sendSuccess(research, 200, paymentResult.settlement);
   } catch (error) {
     console.error("Research error:", error);
     return sendError(
@@ -256,19 +248,16 @@ async function handleSentiment(request: Request, config: RuntimeConfig): Promise
     return body.error;
   }
 
-  const paymentResult = await requirePayment(request, config, endpointConfig);
-  if (!paymentResult.ok) {
-    return (paymentResult as PaymentFailure).response;
-  }
-
   try {
+    const paymentResult = await requirePayment(request, config, endpointConfig);
+    if (!paymentResult.ok) {
+      return (paymentResult as PaymentFailure).response;
+    }
+
     const { topic } = body.data as { topic?: string };
     const analysis = await analyzeSentiment(topic);
 
-    return attachPaymentHeader(
-      sendSuccess(analysis, 200, paymentResult.payment),
-      paymentResult.paymentHeader
-    );
+    return sendSuccess(analysis, 200, paymentResult.settlement);
   } catch (error) {
     console.error("Sentiment error:", error);
     return sendError(
@@ -298,14 +287,4 @@ async function parseJsonBody(request: Request): Promise<{ data?: unknown; error?
       ),
     };
   }
-}
-
-function attachPaymentHeader(response: Response, header: string): Response {
-  const headers = new Headers(response.headers);
-  headers.set("X-Payment-Response", header);
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers,
-  });
 }

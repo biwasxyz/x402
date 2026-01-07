@@ -1,6 +1,14 @@
 import { RuntimeConfig } from "../config";
-import { x402PaymentRequired, EndpointConfig, PaymentInfo, TokenType } from "../types";
+import { x402PaymentRequired, EndpointConfig, TokenType, SettlementInfo } from "../types";
 import { jsonResponse, sendError } from "./response";
+
+function headersToObject(headers: Headers): Record<string, string> {
+  const obj: Record<string, string> = {};
+  headers.forEach((value, key) => {
+    obj[key] = value;
+  });
+  return obj;
+}
 
 // Convert STX to microSTX
 export function STXtoMicroSTX(amount: number): bigint {
@@ -16,12 +24,12 @@ interface VerificationResult {
   blockHeight?: number;
   isValid: boolean;
   validationError?: string;
+  raw?: SettlementInfo;
 }
 
 export interface PaymentSuccess {
   ok: true;
-  payment: PaymentInfo;
-  paymentHeader: string;
+  settlement?: unknown;
 }
 
 export interface PaymentFailure {
@@ -61,6 +69,12 @@ export async function requirePayment(
   const signedPayment = request.headers.get("x-payment");
   const tokenType: TokenType = endpointConfig.tokenType || "STX";
 
+  console.log("x402 incoming request", {
+    url: request.url,
+    method: request.method,
+    headers: headersToObject(request.headers),
+  });
+
   if (!signedPayment) {
     return {
       ok: false,
@@ -77,6 +91,8 @@ export async function requirePayment(
       resource: endpointConfig.resource,
       method: endpointConfig.method,
     });
+
+    console.log("x402 verification result", verification);
 
     if (!verification.isValid) {
       return {
@@ -113,22 +129,9 @@ export async function requirePayment(
       };
     }
 
-    const payment: PaymentInfo = {
-      txId: verification.txId,
-      amount: verification.amount.toString(),
-      sender: verification.sender,
-    };
-
-    const paymentHeader = encodeHeader({
-      txId: verification.txId,
-      status: verification.status,
-      blockHeight: verification.blockHeight,
-    });
-
     return {
       ok: true,
-      payment,
-      paymentHeader,
+      settlement: verification.raw,
     };
   } catch (error) {
     console.error("Payment verification error:", error);
@@ -154,24 +157,30 @@ async function settleSignedPayment(
     method: string;
   }
 ): Promise<VerificationResult> {
+  const settlePayload = {
+    signed_transaction: signedPayment,
+    expected_recipient: config.serverAddress,
+    min_amount: Number(options.amount),
+    network: config.network,
+    resource: options.resource,
+    method: options.method,
+    token_type: options.tokenType === "sBTC" ? "SBTC" : "STX",
+  };
+
+  console.log("x402 settle request payload", settlePayload);
+
   const response = await fetch(`${config.facilitatorUrl}/api/v1/settle`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
     },
-    body: JSON.stringify({
-      signed_transaction: signedPayment,
-      expected_recipient: config.serverAddress,
-      min_amount: Number(options.amount),
-      network: config.network,
-      resource: options.resource,
-      method: options.method,
-      token_type: options.tokenType === "sBTC" ? "SBTC" : "STX",
-    }),
+    body: JSON.stringify(settlePayload),
   });
 
   const data = await response.json();
   const responseData = data as SettleResponseData;
+
+  console.log("x402 settle raw response", responseData);
 
   if (!response.ok) {
     return {
@@ -189,17 +198,7 @@ async function settleSignedPayment(
   return mapSettleResponse(data, config.serverAddress);
 }
 
-interface SettleResponseData {
-  tx_id?: string;
-  status?: string;
-  sender_address?: string;
-  recipient_address?: string;
-  amount?: number | string;
-  block_height?: number;
-  success?: boolean;
-  validation_errors?: string[];
-  error?: string;
-}
+type SettleResponseData = SettlementInfo;
 
 function mapSettleResponse(data: unknown, serverAddress: string): VerificationResult {
   const responseData = data as SettleResponseData;
@@ -214,16 +213,12 @@ function mapSettleResponse(data: unknown, serverAddress: string): VerificationRe
   return {
     txId: responseData.tx_id || "",
     status,
-    sender: responseData.sender_address || "",
-    recipient: responseData.recipient_address || serverAddress,
-    amount: BigInt(responseData.amount || 0),
-    blockHeight: responseData.block_height,
-    isValid: responseData.success === true && responseData.status === "confirmed",
-    validationError: responseData.validation_errors?.join(", ") || responseData.error,
-  };
-}
-
-function encodeHeader(payload: Record<string, unknown>): string {
-  const json = JSON.stringify(payload);
-  return btoa(json);
+  sender: responseData.sender_address || "",
+  recipient: responseData.recipient_address || serverAddress,
+  amount: BigInt(responseData.amount || 0),
+  blockHeight: responseData.block_height,
+  isValid: responseData.success === true && responseData.status === "confirmed",
+  validationError: responseData.validation_errors?.join(", ") || responseData.error,
+  raw: responseData,
+};
 }

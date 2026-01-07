@@ -1,4 +1,4 @@
-import { ApiResponse, ErrorDetails, PaymentInfo } from "../types";
+import { ApiResponse, ErrorDetails } from "../types";
 
 function buildHeaders(init?: Record<string, string>) {
   const headers = new Headers(init || {});
@@ -33,16 +33,13 @@ export function jsonResponse(body: any, status: number = 200, init?: ResponseIni
 export function sendSuccess<T>(
   data: T,
   statusCode: number = 200,
-  payment?: PaymentInfo,
+  settlement?: unknown,
   headers?: Record<string, string>
 ) {
   const response: ApiResponse<T> = {
     success: true,
     data,
-    meta: {
-      timestamp: new Date().toISOString(),
-      ...(payment && { payment }),
-    },
+    ...(settlement && { settlement }),
   };
 
   return jsonResponse(response, statusCode, { headers });
@@ -64,9 +61,6 @@ export function sendError(
   const response: ApiResponse = {
     success: false,
     error,
-    meta: {
-      timestamp: new Date().toISOString(),
-    },
   };
 
   return jsonResponse(response, statusCode, { headers });

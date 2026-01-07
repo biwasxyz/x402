@@ -24,6 +24,23 @@ npm install
 npm run dev
 ```
 
+## Client test script
+
+- Set `CLIENT_MNEMONIC` in `.env`; optional overrides: `API_URL` (default `http://localhost:8787`), `NETWORK` (`mainnet` or `testnet`).
+- For POST endpoints provide payload via `REQUEST_BODY='{"field":"value"}'` or env: `AUDIT_CONTRACT_ID`, `WALLET_ADDRESS`, `RESEARCH_USERNAME`, `SENTIMENT_TOPIC`.
+- Run with `npm run test:client -- /api/news` (path argument defaults to `/api/news`; `METHOD` can override the inferred method).
+- The script logs a JSON blob containing the raw response body plus the `x-payment-response` header (decoded when present).
+
+### Bun endpoint probes
+
+- Requires `CLIENT_MNEMONIC` in `.env` (plus `API_URL`/`NETWORK` if you want to override defaults).
+- Examples (default `API_URL=http://localhost:8787`, `NETWORK=testnet`):
+  - `bun run scripts/news.ts`
+  - `bun run scripts/audit.ts <contractIdentifier>`
+  - `bun run scripts/wallet-classify.ts <address>`
+  - `bun run scripts/research-user.ts <username>`
+  - `bun run scripts/sentiment.ts <topic>`
+
 ## Configuration
 
 Environment variables:
