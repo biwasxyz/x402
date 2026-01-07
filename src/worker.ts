@@ -72,6 +72,23 @@ export default {
       return jsonResponse({ status: "ok", timestamp: new Date().toISOString() });
     }
 
+    // Root info (free)
+    if (method === "GET" && url.pathname === "/") {
+      const endpoints = Object.values(ENDPOINTS).map((endpoint) => ({
+        path: endpoint.resource,
+        method: endpoint.method,
+        description: endpoint.description,
+        amountSTX: endpoint.amountSTX,
+      }));
+
+      return jsonResponse({
+        status: "ok",
+        service: "x402-stacks",
+        endpoints,
+        health: "/health",
+      });
+    }
+
     // Initialize config
     let config: RuntimeConfig;
     try {
