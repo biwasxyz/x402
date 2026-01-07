@@ -1,36 +1,17 @@
 {
-  "name": "x402-demo",
+  "name": "x402-api",
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "start": "wrangler dev",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "client:news": "tsx src/clients/news-client.ts",
-    "client:research": "tsx src/clients/research-client.ts",
-    "client:sentiment": "tsx src/clients/sentiment-client.ts",
-    "client:wallet": "tsx src/clients/wallet-client.ts",
-    "client:whitehat": "tsx src/clients/whitehat-client.ts",
-    "audit": "tsx src/clients/whitehat-client.ts",
-    "dev:scheduler": "tsx src/scheduler.ts",
-    "test:stacks": "tsx tests/stacks-service.test.ts",
-    "test:wallet": "tsx tests/wallet-service.test.ts",
-    "test:wallet:fetch": "tsx tests/wallet-fetch.test.ts"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@openrouter/sdk": "^0.3.10",
-    "@stacks/wallet-sdk": "^6.15.0",
-    "@types/node-cron": "^3.0.11",
-    "axios": "^1.13.2",
-    "dotenv": "^16.3.1",
-    "node-cron": "^4.2.1",
-    "openai": "^6.15.0",
-    "x402-stacks": "^1.1.1"
+    "@openrouter/sdk": "^0.3.10"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260103.0",
-    "@types/node": "^20.0.0",
-    "tsx": "^4.7.0",
     "typescript": "^5.3.3",
     "wrangler": "^3.108.0"
   }
