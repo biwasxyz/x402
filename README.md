@@ -15,6 +15,7 @@ All paid endpoints return HTTP 402 with x402-stacks payment requirements when no
 | `/api/wallet/classify` | POST | 0.005 STX | Wallet behavior classification |
 | `/api/research/user` | POST | 0.005 STX | X/Twitter user research |
 | `/api/sentiment` | POST | 0.005 STX | Crypto sentiment analysis |
+| `/` | GET | Free | Service info and endpoint list |
 | `/health` | GET | Free | Health check |
 
 ## Development
