@@ -60,6 +60,11 @@ Step-by-step operational guides:
 ## Claude Workflow Hooks
 The knowledge base supports composable workflow commands and skills:
 
+## Commit Workflow
+- After every small change, create a commit with a Conventional Commits message (e.g., `fix: adjust root response`).
+- Common types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`, `build`, `ci`, `revert`.
+- Enable the local commit-msg hook: `git config core.hooksPath .githooks`.
+
 ### Commands (User-Initiated)
 - `/sync` - Pull latest from repositories.
 - `/gather` - Pull relevant context before work.
