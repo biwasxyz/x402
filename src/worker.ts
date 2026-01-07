@@ -1,7 +1,7 @@
 import { createRuntimeConfig, EnvBindings, RuntimeConfig } from "./config";
 import { EndpointConfig } from "./types";
 import { sendError, sendSuccess, jsonResponse } from "./utils/response";
-import { requirePayment, PaymentSuccess, PaymentFailure } from "./utils/payment";
+import { requirePayment, PaymentFailure } from "./utils/payment";
 import { initOpenRouter } from "./services/openrouter.service";
 import { getStacksAndBitcoinNews } from "./services/news.service";
 import { performSecurityAudit } from "./services/audit.service";
@@ -9,6 +9,14 @@ import { getContractSource } from "./services/stacks.service";
 import { classifyWallet } from "./services/wallet.service";
 import { researchUser } from "./services/research.service";
 import { analyzeSentiment } from "./services/sentiment.service";
+import {
+  getMarketStats,
+  getTopGainers,
+  getTopLosers,
+  getWhaleTrades,
+  getHourlyNetflow,
+} from "./services/tenero-market.service";
+import { TeneroApiError } from "./services/tenero/client";
 
 
 type Env = EnvBindings & Record<string, string | undefined>;
@@ -44,6 +52,37 @@ const ENDPOINTS: Record<string, EndpointConfig> = {
     description: "Real-time sentiment analysis for crypto tokens on X/Twitter",
     method: "POST",
     amountSTX: 0.005, // 0.005 STX
+  },
+  // Tenero Market Data Endpoints
+  "/api/market/stats": {
+    resource: "/api/market/stats",
+    description: "Stacks DeFi market statistics (volume, traders, pools)",
+    method: "GET",
+    amountSTX: 0.001,
+  },
+  "/api/market/gainers": {
+    resource: "/api/market/gainers",
+    description: "Top gaining tokens by price change",
+    method: "GET",
+    amountSTX: 0.001,
+  },
+  "/api/market/losers": {
+    resource: "/api/market/losers",
+    description: "Top losing tokens by price change",
+    method: "GET",
+    amountSTX: 0.001,
+  },
+  "/api/market/whales": {
+    resource: "/api/market/whales",
+    description: "Recent whale trades (large transactions)",
+    method: "GET",
+    amountSTX: 0.003,
+  },
+  "/api/market/netflow": {
+    resource: "/api/market/netflow",
+    description: "Hourly net flow of funds in/out of the market",
+    method: "GET",
+    amountSTX: 0.003,
   },
 };
 
@@ -129,6 +168,27 @@ export default {
 
     if (method === "POST" && url.pathname === "/api/sentiment") {
       return handleSentiment(request, config);
+    }
+
+    // Tenero Market Endpoints
+    if (method === "GET" && url.pathname === "/api/market/stats") {
+      return handleMarketStats(request, config);
+    }
+
+    if (method === "GET" && url.pathname === "/api/market/gainers") {
+      return handleMarketGainers(request, config);
+    }
+
+    if (method === "GET" && url.pathname === "/api/market/losers") {
+      return handleMarketLosers(request, config);
+    }
+
+    if (method === "GET" && url.pathname === "/api/market/whales") {
+      return handleMarketWhales(request, config);
+    }
+
+    if (method === "GET" && url.pathname === "/api/market/netflow") {
+      return handleMarketNetflow(request, config);
     }
 
     return sendError("Not Found", 404, "NOT_FOUND");
@@ -281,6 +341,129 @@ async function handleSentiment(request: Request, config: RuntimeConfig): Promise
       error instanceof Error ? error.message : "Failed to analyze sentiment",
       500,
       "SENTIMENT_ERROR"
+    );
+  }
+}
+
+// Tenero Market Handlers
+
+async function handleMarketStats(request: Request, config: RuntimeConfig): Promise<Response> {
+  const endpointConfig = ENDPOINTS["/api/market/stats"];
+  try {
+    const paymentResult = await requirePayment(request, config, endpointConfig);
+    if (!paymentResult.ok) {
+      return (paymentResult as PaymentFailure).response;
+    }
+
+    const stats = await getMarketStats();
+    return sendSuccess(stats, 200, paymentResult.settlement);
+  } catch (error) {
+    console.error("Market stats error:", error);
+    if (error instanceof TeneroApiError) {
+      return sendError(`Tenero API unavailable: ${error.message}`, 502, "TENERO_API_ERROR");
+    }
+    return sendError(
+      error instanceof Error ? error.message : "Failed to fetch market stats",
+      500,
+      "MARKET_STATS_ERROR"
+    );
+  }
+}
+
+async function handleMarketGainers(request: Request, config: RuntimeConfig): Promise<Response> {
+  const endpointConfig = ENDPOINTS["/api/market/gainers"];
+  try {
+    const paymentResult = await requirePayment(request, config, endpointConfig);
+    if (!paymentResult.ok) {
+      return (paymentResult as PaymentFailure).response;
+    }
+
+    const url = new URL(request.url);
+    const limit = parseInt(url.searchParams.get("limit") || "10", 10);
+    const gainers = await getTopGainers(Math.min(limit, 50));
+    return sendSuccess(gainers, 200, paymentResult.settlement);
+  } catch (error) {
+    console.error("Market gainers error:", error);
+    if (error instanceof TeneroApiError) {
+      return sendError(`Tenero API unavailable: ${error.message}`, 502, "TENERO_API_ERROR");
+    }
+    return sendError(
+      error instanceof Error ? error.message : "Failed to fetch top gainers",
+      500,
+      "MARKET_GAINERS_ERROR"
+    );
+  }
+}
+
+async function handleMarketLosers(request: Request, config: RuntimeConfig): Promise<Response> {
+  const endpointConfig = ENDPOINTS["/api/market/losers"];
+  try {
+    const paymentResult = await requirePayment(request, config, endpointConfig);
+    if (!paymentResult.ok) {
+      return (paymentResult as PaymentFailure).response;
+    }
+
+    const url = new URL(request.url);
+    const limit = parseInt(url.searchParams.get("limit") || "10", 10);
+    const losers = await getTopLosers(Math.min(limit, 50));
+    return sendSuccess(losers, 200, paymentResult.settlement);
+  } catch (error) {
+    console.error("Market losers error:", error);
+    if (error instanceof TeneroApiError) {
+      return sendError(`Tenero API unavailable: ${error.message}`, 502, "TENERO_API_ERROR");
+    }
+    return sendError(
+      error instanceof Error ? error.message : "Failed to fetch top losers",
+      500,
+      "MARKET_LOSERS_ERROR"
+    );
+  }
+}
+
+async function handleMarketWhales(request: Request, config: RuntimeConfig): Promise<Response> {
+  const endpointConfig = ENDPOINTS["/api/market/whales"];
+  try {
+    const paymentResult = await requirePayment(request, config, endpointConfig);
+    if (!paymentResult.ok) {
+      return (paymentResult as PaymentFailure).response;
+    }
+
+    const url = new URL(request.url);
+    const limit = parseInt(url.searchParams.get("limit") || "20", 10);
+    const whales = await getWhaleTrades(Math.min(limit, 100));
+    return sendSuccess(whales, 200, paymentResult.settlement);
+  } catch (error) {
+    console.error("Market whales error:", error);
+    if (error instanceof TeneroApiError) {
+      return sendError(`Tenero API unavailable: ${error.message}`, 502, "TENERO_API_ERROR");
+    }
+    return sendError(
+      error instanceof Error ? error.message : "Failed to fetch whale trades",
+      500,
+      "MARKET_WHALES_ERROR"
+    );
+  }
+}
+
+async function handleMarketNetflow(request: Request, config: RuntimeConfig): Promise<Response> {
+  const endpointConfig = ENDPOINTS["/api/market/netflow"];
+  try {
+    const paymentResult = await requirePayment(request, config, endpointConfig);
+    if (!paymentResult.ok) {
+      return (paymentResult as PaymentFailure).response;
+    }
+
+    const netflow = await getHourlyNetflow();
+    return sendSuccess(netflow, 200, paymentResult.settlement);
+  } catch (error) {
+    console.error("Market netflow error:", error);
+    if (error instanceof TeneroApiError) {
+      return sendError(`Tenero API unavailable: ${error.message}`, 502, "TENERO_API_ERROR");
+    }
+    return sendError(
+      error instanceof Error ? error.message : "Failed to fetch market netflow",
+      500,
+      "MARKET_NETFLOW_ERROR"
     );
   }
 }
