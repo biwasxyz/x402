@@ -5,6 +5,7 @@ export interface EnvBindings {
   SERVER_ADDRESS?: string;
   NETWORK?: string;
   FACILITATOR_URL?: string;
+  CLOUDFLARE_API_TOKEN?: string;
 }
 
 export interface RuntimeConfig {

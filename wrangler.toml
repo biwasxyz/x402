@@ -12,5 +12,6 @@ NETWORK = "testnet"
 SERVER_ADDRESS = "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM"
 FACILITATOR_URL = "https://facilitator.x402stacks.xyz"
 
-# Set OPENROUTER_API_KEY as a secret:
+# Set secrets:
 # wrangler secret put OPENROUTER_API_KEY
+# wrangler secret put CLOUDFLARE_API_TOKEN  (for /analytics dashboard)

@@ -1,4 +1,5 @@
 // Analytics dashboard HTML - served at /analytics route
+// Uses internal /api/analytics endpoint - no token required
 export const ANALYTICS_HTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -55,7 +56,7 @@ export const ANALYTICS_HTML = `<!DOCTYPE html>
 
     .controls label { color: var(--text-secondary); font-size: 14px; }
 
-    .controls input, .controls select {
+    .controls select {
       background: var(--bg-secondary);
       border: 1px solid var(--border-color);
       color: var(--text-primary);
@@ -107,7 +108,7 @@ export const ANALYTICS_HTML = `<!DOCTYPE html>
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
       gap: 16px;
       margin-bottom: 24px;
     }
@@ -128,7 +129,7 @@ export const ANALYTICS_HTML = `<!DOCTYPE html>
     }
 
     .metric-card .value {
-      font-size: 28px;
+      font-size: 24px;
       font-weight: 700;
       color: var(--text-primary);
     }
@@ -196,6 +197,7 @@ export const ANALYTICS_HTML = `<!DOCTYPE html>
     .badge.success { background: rgba(34, 197, 94, 0.2); color: var(--accent-green); }
     .badge.error { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
     .badge.warning { background: rgba(234, 179, 8, 0.2); color: var(--accent-yellow); }
+    .badge.info { background: rgba(59, 130, 246, 0.2); color: var(--accent-blue); }
 
     .progress-bar {
       height: 6px;
@@ -209,6 +211,7 @@ export const ANALYTICS_HTML = `<!DOCTYPE html>
     .fill.blue { background: var(--accent-blue); }
     .fill.green { background: var(--accent-green); }
     .fill.red { background: var(--accent-red); }
+    .fill.purple { background: var(--accent-purple); }
 
     .error-message {
       background: rgba(239, 68, 68, 0.1);
@@ -223,32 +226,6 @@ export const ANALYTICS_HTML = `<!DOCTYPE html>
 
     .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
     @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
-
-    .token-setup {
-      background: var(--bg-secondary);
-      border: 1px dashed var(--border-color);
-      border-radius: 12px;
-      padding: 32px;
-      text-align: center;
-      margin-bottom: 24px;
-    }
-
-    .token-setup h2 { margin-bottom: 16px; }
-
-    .token-setup input {
-      width: 100%;
-      max-width: 500px;
-      padding: 12px 16px;
-      margin-bottom: 16px;
-      background: var(--bg-tertiary);
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      color: var(--text-primary);
-      font-size: 14px;
-    }
-
-    .token-setup .hint { font-size: 12px; color: var(--text-secondary); margin-top: 8px; }
-    .token-setup a { color: var(--accent-blue); }
   </style>
 </head>
 <body>
@@ -257,7 +234,7 @@ export const ANALYTICS_HTML = `<!DOCTYPE html>
       <h1>Worker Analytics: <span class="worker-name">x402-api</span></h1>
       <div class="controls">
         <label for="timeRange">Time Range:</label>
-        <select id="timeRange">
+        <select id="timeRange" onchange="fetchAnalytics()">
           <option value="1">Last 1 hour</option>
           <option value="6">Last 6 hours</option>
           <option value="24" selected>Last 24 hours</option>
@@ -265,63 +242,51 @@ export const ANALYTICS_HTML = `<!DOCTYPE html>
           <option value="168">Last 7 days</option>
           <option value="720">Last 30 days</option>
         </select>
-        <button id="refreshBtn" onclick="fetchAnalytics()">Refresh</button>
-        <button onclick="clearToken()" style="background: var(--bg-tertiary);">Clear Token</button>
+        <button onclick="fetchAnalytics()">Refresh</button>
       </div>
     </header>
 
-    <div id="tokenSetup" class="token-setup">
-      <h2>Enter Cloudflare API Token</h2>
-      <p style="color: var(--text-secondary); margin-bottom: 16px;">
-        Required permission: <strong>Account Analytics:Read</strong>
-      </p>
-      <input type="password" id="apiToken" placeholder="Enter your Cloudflare API token" />
-      <br>
-      <button onclick="saveToken()">Save & Load Analytics</button>
-      <p class="hint">
-        <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank">Create API Token</a>
-        | Token is stored locally in your browser
-      </p>
+    <div class="status-bar">
+      <div class="status">
+        <div id="statusDot" class="status-dot loading"></div>
+        <span id="statusText">Loading...</span>
+      </div>
+      <span id="lastUpdated" style="color: var(--text-secondary); font-size: 13px;"></span>
     </div>
 
-    <div id="dashboard" style="display: none;">
-      <div class="status-bar">
-        <div class="status">
-          <div id="statusDot" class="status-dot"></div>
-          <span id="statusText">Ready</span>
-        </div>
-        <span id="lastUpdated" style="color: var(--text-secondary); font-size: 13px;"></span>
+    <div id="errorContainer"></div>
+
+    <!-- Summary Metrics -->
+    <div class="grid">
+      <div class="metric-card">
+        <div class="label">Total Requests</div>
+        <div class="value" id="totalRequests">-</div>
       </div>
-
-      <div id="errorContainer"></div>
-
-      <div class="grid" id="summaryGrid">
-        <div class="metric-card">
-          <div class="label">Total Requests</div>
-          <div class="value" id="totalRequests">-</div>
-        </div>
-        <div class="metric-card">
-          <div class="label">Total Errors</div>
-          <div class="value error" id="totalErrors">-</div>
-        </div>
-        <div class="metric-card">
-          <div class="label">Success Rate</div>
-          <div class="value success" id="successRate">-</div>
-        </div>
-        <div class="metric-card">
-          <div class="label">Subrequests</div>
-          <div class="value" id="totalSubrequests">-</div>
-        </div>
-        <div class="metric-card">
-          <div class="label">CPU Time P50</div>
-          <div class="value" id="cpuTimeP50">-</div>
-        </div>
-        <div class="metric-card">
-          <div class="label">CPU Time P99</div>
-          <div class="value" id="cpuTimeP99">-</div>
-        </div>
+      <div class="metric-card">
+        <div class="label">Total Errors</div>
+        <div class="value error" id="totalErrors">-</div>
       </div>
+      <div class="metric-card">
+        <div class="label">Success Rate</div>
+        <div class="value success" id="successRate">-</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Subrequests</div>
+        <div class="value" id="totalSubrequests">-</div>
+        <div class="subvalue" id="subrequestRatio">-</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">CPU Time P50</div>
+        <div class="value" id="cpuTimeP50">-</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">CPU Time P99</div>
+        <div class="value" id="cpuTimeP99">-</div>
+      </div>
+    </div>
 
+    <div class="two-col">
+      <!-- Status Breakdown -->
       <div class="section">
         <h2>Status Breakdown</h2>
         <table>
@@ -331,96 +296,114 @@ export const ANALYTICS_HTML = `<!DOCTYPE html>
               <th>Requests</th>
               <th>Errors</th>
               <th>Error Rate</th>
-              <th>Distribution</th>
             </tr>
           </thead>
           <tbody id="statusTable">
-            <tr><td colspan="5" class="empty-state">Loading...</td></tr>
+            <tr><td colspan="4" class="empty-state">Loading...</td></tr>
           </tbody>
         </table>
       </div>
 
+      <!-- Subrequest Tracking -->
       <div class="section">
-        <h2>Hourly Breakdown</h2>
+        <h2>Subrequest Tracking (Live)</h2>
         <table>
           <thead>
             <tr>
-              <th>Hour (UTC)</th>
-              <th>Requests</th>
+              <th>Target</th>
+              <th>Count</th>
               <th>Errors</th>
-              <th>Subreqs</th>
-              <th>CPU P50</th>
-              <th>CPU P99</th>
+              <th>Avg Duration</th>
             </tr>
           </thead>
-          <tbody id="hourlyTable">
-            <tr><td colspan="6" class="empty-state">Loading...</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="section">
-        <h2>Available Worker Metrics (workersInvocationsAdaptive)</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Category</th>
-              <th>Field</th>
-              <th>Description</th>
-              <th>Type</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr><td>sum</td><td class="mono">requests</td><td>Total number of requests</td><td><span class="badge success">Counter</span></td></tr>
-            <tr><td>sum</td><td class="mono">errors</td><td>Total number of errors</td><td><span class="badge error">Counter</span></td></tr>
-            <tr><td>sum</td><td class="mono">subrequests</td><td>Total fetch() calls made by worker</td><td><span class="badge success">Counter</span></td></tr>
-            <tr><td>quantiles</td><td class="mono">cpuTimeP50</td><td>Median CPU time (microseconds)</td><td><span class="badge warning">Percentile</span></td></tr>
-            <tr><td>quantiles</td><td class="mono">cpuTimeP99</td><td>99th percentile CPU time (microseconds)</td><td><span class="badge warning">Percentile</span></td></tr>
-            <tr><td>dimensions</td><td class="mono">datetime</td><td>Timestamp of metric</td><td><span class="badge">Filter</span></td></tr>
-            <tr><td>dimensions</td><td class="mono">datetimeHour</td><td>Hourly bucket</td><td><span class="badge">Filter</span></td></tr>
-            <tr><td>dimensions</td><td class="mono">scriptName</td><td>Worker script name</td><td><span class="badge">Filter</span></td></tr>
-            <tr><td>dimensions</td><td class="mono">status</td><td>Request status (success/error)</td><td><span class="badge">Filter</span></td></tr>
+          <tbody id="subrequestTable">
+            <tr><td colspan="4" class="empty-state">Loading...</td></tr>
           </tbody>
         </table>
       </div>
     </div>
+
+    <!-- Hourly Breakdown -->
+    <div class="section">
+      <h2>Hourly Breakdown</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Hour (UTC)</th>
+            <th>Requests</th>
+            <th>Errors</th>
+            <th>Subreqs</th>
+            <th>CPU P50</th>
+            <th>CPU P99</th>
+          </tr>
+        </thead>
+        <tbody id="hourlyTable">
+          <tr><td colspan="6" class="empty-state">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Recent Subrequests -->
+    <div class="section">
+      <h2>Recent Subrequests (Live)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Endpoint</th>
+            <th>Target</th>
+            <th>Method</th>
+            <th>Status</th>
+            <th>Duration</th>
+          </tr>
+        </thead>
+        <tbody id="recentSubrequestsTable">
+          <tr><td colspan="6" class="empty-state">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Available Metrics -->
+    <div class="section">
+      <h2>Available Metrics</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Field</th>
+            <th>Description</th>
+            <th>Type</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>sum</td><td class="mono">requests</td><td>Total number of requests</td><td><span class="badge success">Counter</span></td></tr>
+          <tr><td>sum</td><td class="mono">errors</td><td>Total number of errors</td><td><span class="badge error">Counter</span></td></tr>
+          <tr><td>sum</td><td class="mono">subrequests</td><td>Total fetch() calls made by worker</td><td><span class="badge info">Counter</span></td></tr>
+          <tr><td>quantiles</td><td class="mono">cpuTimeP50</td><td>Median CPU time (microseconds)</td><td><span class="badge warning">Percentile</span></td></tr>
+          <tr><td>quantiles</td><td class="mono">cpuTimeP99</td><td>99th percentile CPU time (microseconds)</td><td><span class="badge warning">Percentile</span></td></tr>
+          <tr><td>dimensions</td><td class="mono">status</td><td>Request status (success/error)</td><td><span class="badge">Filter</span></td></tr>
+          <tr><td>dimensions</td><td class="mono">datetimeHour</td><td>Hourly bucket</td><td><span class="badge">Filter</span></td></tr>
+          <tr><td>live</td><td class="mono">subrequestTracking</td><td>Real-time subrequest tracking per worker instance</td><td><span class="badge info">Live</span></td></tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <script>
-    const GRAPHQL_ENDPOINT = 'https://api.cloudflare.com/client/v4/graphql';
-    const ACCOUNT_ID = 'c4cd2fdc1a3327a4fcec8c151333c267';
-    const SCRIPT_NAME = 'x402-api';
-
-    const savedToken = localStorage.getItem('cf_api_token');
-    if (savedToken) {
-      document.getElementById('tokenSetup').style.display = 'none';
-      document.getElementById('dashboard').style.display = 'block';
-      fetchAnalytics();
-    }
-
-    function saveToken() {
-      const token = document.getElementById('apiToken').value.trim();
-      if (!token) { alert('Please enter an API token'); return; }
-      localStorage.setItem('cf_api_token', token);
-      document.getElementById('tokenSetup').style.display = 'none';
-      document.getElementById('dashboard').style.display = 'block';
-      fetchAnalytics();
-    }
-
-    function clearToken() {
-      localStorage.removeItem('cf_api_token');
-      document.getElementById('tokenSetup').style.display = 'block';
-      document.getElementById('dashboard').style.display = 'none';
-    }
-
     function formatDuration(microseconds) {
       if (!microseconds || microseconds === 0) return '0 us';
-      if (microseconds < 1000) return microseconds.toFixed(2) + ' us';
+      if (microseconds < 1000) return microseconds.toFixed(0) + ' us';
       if (microseconds < 1000000) return (microseconds / 1000).toFixed(2) + ' ms';
       return (microseconds / 1000000).toFixed(2) + ' s';
     }
 
     function formatNumber(num) { return (num || 0).toLocaleString('en-US'); }
+
+    function formatTime(isoString) {
+      if (!isoString) return 'N/A';
+      var d = new Date(isoString);
+      return d.toLocaleTimeString();
+    }
 
     function setStatus(status, text) {
       document.getElementById('statusDot').className = 'status-dot ' + status;
@@ -434,139 +417,63 @@ export const ANALYTICS_HTML = `<!DOCTYPE html>
     function clearError() { document.getElementById('errorContainer').innerHTML = ''; }
 
     async function fetchAnalytics() {
-      const token = localStorage.getItem('cf_api_token');
-      if (!token) {
-        document.getElementById('tokenSetup').style.display = 'block';
-        document.getElementById('dashboard').style.display = 'none';
-        return;
-      }
-
       setStatus('loading', 'Fetching analytics...');
       clearError();
 
-      const hoursBack = parseInt(document.getElementById('timeRange').value, 10);
-      const now = new Date();
-      const datetimeEnd = now.toISOString();
-      const datetimeStart = new Date(now.getTime() - hoursBack * 60 * 60 * 1000).toISOString();
-
-      const variables = { accountTag: ACCOUNT_ID, scriptName: SCRIPT_NAME, datetimeStart: datetimeStart, datetimeEnd: datetimeEnd };
-
-      const mainQuery = 'query GetWorkersAnalytics($accountTag: String!, $datetimeStart: Time!, $datetimeEnd: Time!, $scriptName: String!) { viewer { accounts(filter: { accountTag: $accountTag }) { workersInvocationsAdaptive( filter: { scriptName: $scriptName datetime_geq: $datetimeStart datetime_leq: $datetimeEnd } limit: 1000 orderBy: [datetime_DESC] ) { sum { requests errors subrequests } quantiles { cpuTimeP50 cpuTimeP99 } dimensions { datetime scriptName status } } } } }';
-
-      const statusQuery = 'query GetWorkersStatusBreakdown($accountTag: String!, $datetimeStart: Time!, $datetimeEnd: Time!, $scriptName: String!) { viewer { accounts(filter: { accountTag: $accountTag }) { workersInvocationsAdaptive( filter: { scriptName: $scriptName datetime_geq: $datetimeStart datetime_leq: $datetimeEnd } limit: 100 orderBy: [sum_requests_DESC] ) { sum { requests errors } dimensions { status scriptName } } } } }';
-
-      const hourlyQuery = 'query GetWorkersHourlyBreakdown($accountTag: String!, $datetimeStart: Time!, $datetimeEnd: Time!, $scriptName: String!) { viewer { accounts(filter: { accountTag: $accountTag }) { workersInvocationsAdaptive( filter: { scriptName: $scriptName datetime_geq: $datetimeStart datetime_leq: $datetimeEnd } limit: 168 orderBy: [datetimeHour_DESC] ) { sum { requests errors subrequests } quantiles { cpuTimeP50 cpuTimeP99 } dimensions { datetimeHour scriptName } } } } }';
+      var hours = document.getElementById('timeRange').value;
 
       try {
-        const [mainRes, statusRes, hourlyRes] = await Promise.all([
-          fetch(GRAPHQL_ENDPOINT, {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: mainQuery, variables: variables })
-          }),
-          fetch(GRAPHQL_ENDPOINT, {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: statusQuery, variables: variables })
-          }),
-          fetch(GRAPHQL_ENDPOINT, {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: hourlyQuery, variables: variables })
-          })
-        ]);
+        var response = await fetch('/api/analytics?hours=' + hours);
+        var data = await response.json();
 
-        const [mainData, statusData, hourlyData] = await Promise.all([mainRes.json(), statusRes.json(), hourlyRes.json()]);
+        if (!data.success) {
+          showError('Error: ' + (data.error || 'Unknown error'));
+          setStatus('error', 'Error');
 
-        if (mainData.errors && mainData.errors.some(function(e) { return e.message.includes('authentication'); })) {
-          localStorage.removeItem('cf_api_token');
-          showError('Authentication failed. Please check your API token and ensure it has Account Analytics:Read permission.');
-          setStatus('error', 'Auth failed');
-          return;
-        }
-
-        if (mainData.errors) {
-          showError('GraphQL Error: ' + mainData.errors.map(function(e) { return e.message; }).join(', '));
-          setStatus('error', 'Query failed');
-          return;
-        }
-
-        const mainMetrics = (mainData.data && mainData.data.viewer && mainData.data.viewer.accounts && mainData.data.viewer.accounts[0] && mainData.data.viewer.accounts[0].workersInvocationsAdaptive) || [];
-        const statusMetrics = (statusData.data && statusData.data.viewer && statusData.data.viewer.accounts && statusData.data.viewer.accounts[0] && statusData.data.viewer.accounts[0].workersInvocationsAdaptive) || [];
-        const hourlyMetrics = (hourlyData.data && hourlyData.data.viewer && hourlyData.data.viewer.accounts && hourlyData.data.viewer.accounts[0] && hourlyData.data.viewer.accounts[0].workersInvocationsAdaptive) || [];
-
-        if (mainMetrics.length === 0) {
-          showError('No metrics data available for the specified time range. The worker may have no traffic.');
-          setStatus('', 'No data');
-          document.getElementById('totalRequests').textContent = '0';
-          document.getElementById('totalErrors').textContent = '0';
-          document.getElementById('successRate').textContent = '-';
-          document.getElementById('totalSubrequests').textContent = '0';
-          document.getElementById('cpuTimeP50').textContent = '-';
-          document.getElementById('cpuTimeP99').textContent = '-';
-          document.getElementById('statusTable').innerHTML = '<tr><td colspan="5" class="empty-state">No data</td></tr>';
-          document.getElementById('hourlyTable').innerHTML = '<tr><td colspan="6" class="empty-state">No data</td></tr>';
-          return;
-        }
-
-        var totals = { requests: 0, errors: 0, subrequests: 0 };
-        for (var i = 0; i < mainMetrics.length; i++) {
-          var m = mainMetrics[i];
-          totals.requests += (m.sum && m.sum.requests) || 0;
-          totals.errors += (m.sum && m.sum.errors) || 0;
-          totals.subrequests += (m.sum && m.sum.subrequests) || 0;
-        }
-
-        var cpuTimeP50 = 0, cpuTimeP99 = 0;
-        for (var i = 0; i < mainMetrics.length; i++) {
-          var m = mainMetrics[i];
-          if (m.quantiles && m.quantiles.cpuTimeP50 > cpuTimeP50) cpuTimeP50 = m.quantiles.cpuTimeP50;
-          if (m.quantiles && m.quantiles.cpuTimeP99 > cpuTimeP99) cpuTimeP99 = m.quantiles.cpuTimeP99;
-        }
-
-        document.getElementById('totalRequests').textContent = formatNumber(totals.requests);
-        document.getElementById('totalErrors').textContent = formatNumber(totals.errors);
-        document.getElementById('successRate').textContent = (((totals.requests - totals.errors) / totals.requests) * 100 || 0).toFixed(1) + '%';
-        document.getElementById('totalSubrequests').textContent = formatNumber(totals.subrequests);
-        document.getElementById('cpuTimeP50').textContent = formatDuration(cpuTimeP50);
-        document.getElementById('cpuTimeP99').textContent = formatDuration(cpuTimeP99);
-
-        var statusTbody = document.getElementById('statusTable');
-        var maxStatusRequests = 1;
-        for (var i = 0; i < statusMetrics.length; i++) {
-          var req = (statusMetrics[i].sum && statusMetrics[i].sum.requests) || 0;
-          if (req > maxStatusRequests) maxStatusRequests = req;
-        }
-        if (statusMetrics.length > 0) {
-          var html = '';
-          for (var i = 0; i < statusMetrics.length; i++) {
-            var m = statusMetrics[i];
-            var requests = (m.sum && m.sum.requests) || 0;
-            var errors = (m.sum && m.sum.errors) || 0;
-            var errorRate = ((errors / requests) * 100 || 0).toFixed(2);
-            var percent = (requests / maxStatusRequests) * 100;
-            var status = (m.dimensions && m.dimensions.status) || 'unknown';
-            var badgeClass = (status === 'ok' || status === 'success') ? 'success' : (status === 'error' ? 'error' : 'warning');
-            html += '<tr><td><span class="badge ' + badgeClass + '">' + status + '</span></td><td class="mono">' + formatNumber(requests) + '</td><td class="mono">' + formatNumber(errors) + '</td><td>' + errorRate + '%</td><td style="width: 200px;"><div class="progress-bar"><div class="fill ' + (badgeClass === 'error' ? 'red' : 'green') + '" style="width: ' + percent + '%;"></div></div></td></tr>';
+          // Still show subrequest tracking if available
+          if (data.subrequestTracking) {
+            renderSubrequestTracking(data.subrequestTracking);
           }
-          statusTbody.innerHTML = html;
-        } else {
-          statusTbody.innerHTML = '<tr><td colspan="5" class="empty-state">No status data</td></tr>';
+          return;
         }
 
-        var hourlyTbody = document.getElementById('hourlyTable');
-        if (hourlyMetrics.length > 0) {
-          var html = '';
-          var limit = Math.min(hourlyMetrics.length, 24);
-          for (var i = 0; i < limit; i++) {
-            var m = hourlyMetrics[i];
-            var hour = (m.dimensions && m.dimensions.datetimeHour) || 'N/A';
-            var displayHour = hour !== 'N/A' ? hour.replace('T', ' ').replace('Z', '') : hour;
-            html += '<tr><td class="mono">' + displayHour + '</td><td class="mono">' + formatNumber((m.sum && m.sum.requests) || 0) + '</td><td class="mono">' + formatNumber((m.sum && m.sum.errors) || 0) + '</td><td class="mono">' + formatNumber((m.sum && m.sum.subrequests) || 0) + '</td><td class="mono">' + formatDuration((m.quantiles && m.quantiles.cpuTimeP50) || 0) + '</td><td class="mono">' + formatDuration((m.quantiles && m.quantiles.cpuTimeP99) || 0) + '</td></tr>';
-          }
-          hourlyTbody.innerHTML = html;
+        // Update summary cards
+        var summary = data.summary || {};
+        document.getElementById('totalRequests').textContent = formatNumber(summary.requests);
+        document.getElementById('totalErrors').textContent = formatNumber(summary.errors);
+        document.getElementById('successRate').textContent = summary.successRate || '-';
+        document.getElementById('totalSubrequests').textContent = formatNumber(summary.subrequests);
+        document.getElementById('subrequestRatio').textContent = summary.subrequestRatio || '-';
+        document.getElementById('cpuTimeP50').textContent = formatDuration(summary.cpuTimeP50);
+        document.getElementById('cpuTimeP99').textContent = formatDuration(summary.cpuTimeP99);
+
+        // Render status breakdown
+        var statusTable = document.getElementById('statusTable');
+        var statusData = data.statusBreakdown || [];
+        if (statusData.length > 0) {
+          statusTable.innerHTML = statusData.map(function(s) {
+            var badgeClass = (s.status === 'ok' || s.status === 'success') ? 'success' : (s.status === 'error' ? 'error' : 'warning');
+            return '<tr><td><span class="badge ' + badgeClass + '">' + s.status + '</span></td><td class="mono">' + formatNumber(s.requests) + '</td><td class="mono">' + formatNumber(s.errors) + '</td><td>' + s.errorRate + '</td></tr>';
+          }).join('');
         } else {
-          hourlyTbody.innerHTML = '<tr><td colspan="6" class="empty-state">No hourly data</td></tr>';
+          statusTable.innerHTML = '<tr><td colspan="4" class="empty-state">No status data</td></tr>';
+        }
+
+        // Render hourly breakdown
+        var hourlyTable = document.getElementById('hourlyTable');
+        var hourlyData = data.hourlyBreakdown || [];
+        if (hourlyData.length > 0) {
+          hourlyTable.innerHTML = hourlyData.map(function(h) {
+            var displayHour = h.hour ? h.hour.replace('T', ' ').replace('Z', '') : 'N/A';
+            return '<tr><td class="mono">' + displayHour + '</td><td class="mono">' + formatNumber(h.requests) + '</td><td class="mono">' + formatNumber(h.errors) + '</td><td class="mono">' + formatNumber(h.subrequests) + '</td><td class="mono">' + formatDuration(h.cpuTimeP50) + '</td><td class="mono">' + formatDuration(h.cpuTimeP99) + '</td></tr>';
+          }).join('');
+        } else {
+          hourlyTable.innerHTML = '<tr><td colspan="6" class="empty-state">No hourly data</td></tr>';
+        }
+
+        // Render subrequest tracking
+        if (data.subrequestTracking) {
+          renderSubrequestTracking(data.subrequestTracking);
         }
 
         setStatus('', 'Updated');
@@ -579,9 +486,36 @@ export const ANALYTICS_HTML = `<!DOCTYPE html>
       }
     }
 
-    setInterval(function() {
-      if (localStorage.getItem('cf_api_token')) fetchAnalytics();
-    }, 5 * 60 * 1000);
+    function renderSubrequestTracking(tracking) {
+      // Subrequest by target
+      var subrequestTable = document.getElementById('subrequestTable');
+      var byTarget = tracking.byTarget || [];
+      if (byTarget.length > 0) {
+        subrequestTable.innerHTML = byTarget.map(function(t) {
+          return '<tr><td class="mono">' + t.target + '</td><td class="mono">' + formatNumber(t.count) + '</td><td class="mono">' + formatNumber(t.errors) + '</td><td class="mono">' + t.avgDuration + ' ms</td></tr>';
+        }).join('');
+      } else {
+        subrequestTable.innerHTML = '<tr><td colspan="4" class="empty-state">No subrequests tracked yet (resets on worker restart)</td></tr>';
+      }
+
+      // Recent subrequests
+      var recentTable = document.getElementById('recentSubrequestsTable');
+      var recentLogs = tracking.recentLogs || [];
+      if (recentLogs.length > 0) {
+        recentTable.innerHTML = recentLogs.slice(0, 20).map(function(log) {
+          var statusClass = log.status >= 200 && log.status < 300 ? 'success' : (log.status >= 400 ? 'error' : 'warning');
+          return '<tr><td class="mono">' + formatTime(log.timestamp) + '</td><td class="mono">' + log.endpoint + '</td><td class="mono">' + log.target + '</td><td>' + log.method + '</td><td><span class="badge ' + statusClass + '">' + log.status + '</span></td><td class="mono">' + log.duration + ' ms</td></tr>';
+        }).join('');
+      } else {
+        recentTable.innerHTML = '<tr><td colspan="6" class="empty-state">No recent subrequests (resets on worker restart)</td></tr>';
+      }
+    }
+
+    // Initial fetch
+    fetchAnalytics();
+
+    // Auto-refresh every 30 seconds
+    setInterval(fetchAnalytics, 30 * 1000);
   </script>
 </body>
 </html>`;

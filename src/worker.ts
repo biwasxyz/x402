@@ -21,6 +21,7 @@ import { getTrendingPools, getPoolOhlc } from "./services/tenero-pools.service";
 import { getTokenSummary, getTokenDetails } from "./services/tenero-tokens.service";
 import { TrendingTimeframe } from "./services/tenero/types";
 import { analyzeWalletTrading, analyzeWalletPnl } from "./services/tenero-wallets.service";
+import { getWorkerAnalytics, getSubrequestStats } from "./services/analytics.service";
 import { ANALYTICS_HTML } from "./analytics-page";
 
 
@@ -182,6 +183,23 @@ export default {
           "cache-control": "public, max-age=300",
         },
       });
+    }
+
+    // Analytics API endpoint (free, public)
+    if (method === "GET" && url.pathname === "/api/analytics") {
+      const hours = parseInt(url.searchParams.get("hours") || "24", 10);
+      const validHours = Math.min(Math.max(hours, 1), 720); // 1 hour to 30 days
+
+      if (!env.CLOUDFLARE_API_TOKEN) {
+        return jsonResponse({
+          success: false,
+          error: "CLOUDFLARE_API_TOKEN not configured",
+          subrequestTracking: getSubrequestStats(),
+        });
+      }
+
+      const analytics = await getWorkerAnalytics(env.CLOUDFLARE_API_TOKEN, validHours);
+      return jsonResponse(analytics);
     }
 
     // Root info (free)
