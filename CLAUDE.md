@@ -1,7 +1,7 @@
 # x402-stacks API - Claude Guidance
 
 ## Project Summary
-Cloudflare Worker that implements the x402-stacks payment protocol for AI-powered Stacks analytics. Paid endpoints return HTTP 402 until a valid STX or sBTC payment is provided.
+Cloudflare Worker that implements the x402-stacks payment protocol for AI-powered Stacks analytics. Paid AI endpoints return HTTP 402 until a valid STX or sBTC payment is provided, while free Tenero market/pools/tokens endpoints bypass payment.
 
 ## Key Commands
 - `npm install` - Install dependencies.

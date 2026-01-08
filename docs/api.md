@@ -15,7 +15,7 @@ https://<your-worker-domain>
 
 ## Authentication and payment (x402)
 
-Paid endpoints require the `x-payment` header. If the header is missing or invalid, the API responds with `402` and the payment requirements.
+Paid endpoints require the `x-payment` header. If the header is missing or invalid, the API responds with `402` and the payment requirements. Free endpoints (market data and pool/token lookups backed by free external APIs) do not require payment.
 
 ### Payment flow
 
@@ -55,7 +55,7 @@ Field definitions:
 
 ### Response envelope
 
-All successful responses wrap data in a standard envelope:
+All successful responses wrap data in a standard envelope. Paid endpoints also include settlement metadata:
 
 ```json
 {
@@ -64,6 +64,8 @@ All successful responses wrap data in a standard envelope:
   "settlement": { "tx_id": "...", "status": "confirmed" }
 }
 ```
+
+Free endpoints omit the `settlement` field.
 
 Errors are returned as:
 
@@ -85,7 +87,7 @@ Errors are returned as:
 
 ### GET /
 
-Service discovery. Returns the list of available paid endpoints and their prices.
+Service discovery. Returns the list of available endpoints and their prices (price `0` means free).
 
 ```bash
 curl -s https://<your-worker-domain>/
@@ -97,6 +99,151 @@ Health check.
 
 ```bash
 curl -s https://<your-worker-domain>/health
+```
+
+### Tenero market data
+
+#### GET /api/market/stats
+
+{: .free }
+> Free (no payment required).
+
+Returns Stacks DeFi market statistics.
+
+```bash
+curl -s https://<your-worker-domain>/api/market/stats
+```
+
+#### GET /api/market/gainers
+
+{: .free }
+> Free (no payment required).
+
+Query parameters:
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `limit` | number | `10` | Max results (capped at 50). |
+
+```bash
+curl -s "https://<your-worker-domain>/api/market/gainers?limit=10"
+```
+
+#### GET /api/market/losers
+
+{: .free }
+> Free (no payment required).
+
+Query parameters:
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `limit` | number | `10` | Max results (capped at 50). |
+
+```bash
+curl -s "https://<your-worker-domain>/api/market/losers?limit=10"
+```
+
+#### GET /api/market/whales
+
+{: .free }
+> Free (no payment required).
+
+Query parameters:
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `limit` | number | `20` | Max results (capped at 100). |
+
+```bash
+curl -s "https://<your-worker-domain>/api/market/whales?limit=20"
+```
+
+#### GET /api/market/netflow
+
+{: .free }
+> Free (no payment required).
+
+Returns hourly net flows of funds in/out of the market.
+
+```bash
+curl -s https://<your-worker-domain>/api/market/netflow
+```
+
+### Tenero pools and tokens
+
+#### GET /api/pools/trending
+
+{: .free }
+> Free (no payment required).
+
+Query parameters:
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `timeframe` | string | `1d` | One of `1h`, `4h`, `1d`, `24h`, `7d`. |
+
+```bash
+curl -s "https://<your-worker-domain>/api/pools/trending?timeframe=1d"
+```
+
+#### POST /api/pools/ohlc
+
+{: .free }
+> Free (no payment required).
+
+Request body:
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `poolId` | string | yes | Pool identifier. |
+| `period` | string | no | `1m`, `5m`, `15m`, `1h`, `4h`, `1d`. |
+| `limit` | number | no | Max results (capped at 1000). |
+
+```bash
+curl -s \
+  -X POST \
+  -H "content-type: application/json" \
+  -d '{"poolId":"SM1793C4R5PZ4NS4VQ4WMP7SKKYVH8JZEWSZ9HCCR.xyk-pool-leo-stx-v-1-1","period":"1h","limit":200}' \
+  https://<your-worker-domain>/api/pools/ohlc
+```
+
+#### POST /api/tokens/summary
+
+{: .free }
+> Free (no payment required).
+
+Request body:
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `tokenAddress` | string | yes | Token contract address. |
+
+```bash
+curl -s \
+  -X POST \
+  -H "content-type: application/json" \
+  -d '{"tokenAddress":"SP3K8BC0PPEVCV7NZ6QSRWPQ2JE9E5B6N3PA0KBR9.token-abtc"}' \
+  https://<your-worker-domain>/api/tokens/summary
+```
+
+#### POST /api/tokens/details
+
+{: .free }
+> Free (no payment required).
+
+Request body:
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `tokenAddress` | string | yes | Token contract address. |
+
+```bash
+curl -s \
+  -X POST \
+  -H "content-type: application/json" \
+  -d '{"tokenAddress":"SP3K8BC0PPEVCV7NZ6QSRWPQ2JE9E5B6N3PA0KBR9.token-abtc"}' \
+  https://<your-worker-domain>/api/tokens/details
 ```
 
 ## Paid endpoints
@@ -197,166 +344,6 @@ curl -s \
   -H "x-payment: <signed_stacks_transaction_hex>" \
   -d '{"topic":"sBTC, STX"}' \
   https://<your-worker-domain>/api/sentiment
-```
-
-### Tenero market data
-
-#### GET /api/market/stats
-
-{: .paid }
-> Price: `0.001 STX`
-
-Returns Stacks DeFi market statistics.
-
-```bash
-curl -s \
-  -H "x-payment: <signed_stacks_transaction_hex>" \
-  https://<your-worker-domain>/api/market/stats
-```
-
-#### GET /api/market/gainers
-
-{: .paid }
-> Price: `0.001 STX`
-
-Query parameters:
-
-| Param | Type | Default | Description |
-| --- | --- | --- | --- |
-| `limit` | number | `10` | Max results (capped at 50). |
-
-```bash
-curl -s \
-  -H "x-payment: <signed_stacks_transaction_hex>" \
-  "https://<your-worker-domain>/api/market/gainers?limit=10"
-```
-
-#### GET /api/market/losers
-
-{: .paid }
-> Price: `0.001 STX`
-
-Query parameters:
-
-| Param | Type | Default | Description |
-| --- | --- | --- | --- |
-| `limit` | number | `10` | Max results (capped at 50). |
-
-```bash
-curl -s \
-  -H "x-payment: <signed_stacks_transaction_hex>" \
-  "https://<your-worker-domain>/api/market/losers?limit=10"
-```
-
-#### GET /api/market/whales
-
-{: .paid }
-> Price: `0.003 STX`
-
-Query parameters:
-
-| Param | Type | Default | Description |
-| --- | --- | --- | --- |
-| `limit` | number | `20` | Max results (capped at 100). |
-
-```bash
-curl -s \
-  -H "x-payment: <signed_stacks_transaction_hex>" \
-  "https://<your-worker-domain>/api/market/whales?limit=20"
-```
-
-#### GET /api/market/netflow
-
-{: .paid }
-> Price: `0.003 STX`
-
-Returns hourly net flows of funds in/out of the market.
-
-```bash
-curl -s \
-  -H "x-payment: <signed_stacks_transaction_hex>" \
-  https://<your-worker-domain>/api/market/netflow
-```
-
-### Tenero pools and tokens
-
-#### GET /api/pools/trending
-
-{: .paid }
-> Price: `0.002 STX`
-
-Query parameters:
-
-| Param | Type | Default | Description |
-| --- | --- | --- | --- |
-| `timeframe` | string | `1d` | One of `1h`, `4h`, `1d`, `24h`, `7d`. |
-
-```bash
-curl -s \
-  -H "x-payment: <signed_stacks_transaction_hex>" \
-  "https://<your-worker-domain>/api/pools/trending?timeframe=1d"
-```
-
-#### POST /api/pools/ohlc
-
-{: .paid }
-> Price: `0.003 STX`
-
-Request body:
-
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `poolId` | string | yes | Pool identifier. |
-| `period` | string | no | `1m`, `5m`, `15m`, `1h`, `4h`, `1d`. |
-| `limit` | number | no | Max results (capped at 1000). |
-
-```bash
-curl -s \
-  -X POST \
-  -H "content-type: application/json" \
-  -H "x-payment: <signed_stacks_transaction_hex>" \
-  -d '{"poolId":"SM1793C4R5PZ4NS4VQ4WMP7SKKYVH8JZEWSZ9HCCR.xyk-pool-leo-stx-v-1-1","period":"1h","limit":200}' \
-  https://<your-worker-domain>/api/pools/ohlc
-```
-
-#### POST /api/tokens/summary
-
-{: .paid }
-> Price: `0.003 STX`
-
-Request body:
-
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `tokenAddress` | string | yes | Token contract address. |
-
-```bash
-curl -s \
-  -X POST \
-  -H "content-type: application/json" \
-  -H "x-payment: <signed_stacks_transaction_hex>" \
-  -d '{"tokenAddress":"SP3K8BC0PPEVCV7NZ6QSRWPQ2JE9E5B6N3PA0KBR9.token-abtc"}' \
-  https://<your-worker-domain>/api/tokens/summary
-```
-
-#### POST /api/tokens/details
-
-{: .paid }
-> Price: `0.003 STX`
-
-Request body:
-
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `tokenAddress` | string | yes | Token contract address. |
-
-```bash
-curl -s \
-  -X POST \
-  -H "content-type: application/json" \
-  -H "x-payment: <signed_stacks_transaction_hex>" \
-  -d '{"tokenAddress":"SP3K8BC0PPEVCV7NZ6QSRWPQ2JE9E5B6N3PA0KBR9.token-abtc"}' \
-  https://<your-worker-domain>/api/tokens/details
 ```
 
 ### Wallet analytics (AI-enhanced)

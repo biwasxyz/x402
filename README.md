@@ -6,7 +6,7 @@ Payments are made in STX or sBTC on the Stacks blockchain.
 
 ## Endpoints
 
-All paid endpoints return HTTP 402 with x402-stacks payment requirements when no payment is provided.
+Paid endpoints return HTTP 402 with x402-stacks payment requirements when no payment is provided. Free endpoints (Tenero market data, pools, and token lookups) do not require payment.
 
 ### AI-Powered Endpoints
 
@@ -18,24 +18,24 @@ All paid endpoints return HTTP 402 with x402-stacks payment requirements when no
 | `/api/research/user` | POST | 0.005 STX | X/Twitter user research |
 | `/api/sentiment` | POST | 0.005 STX | Crypto sentiment analysis |
 
-### Tenero Market Data
+### Tenero Market Data (Free)
 
 | Endpoint | Method | Price | Description |
 |----------|--------|-------|-------------|
-| `/api/market/stats` | GET | 0.001 STX | Stacks DeFi market statistics |
-| `/api/market/gainers` | GET | 0.001 STX | Top gaining tokens by price change |
-| `/api/market/losers` | GET | 0.001 STX | Top losing tokens by price change |
-| `/api/market/whales` | GET | 0.003 STX | Recent whale trades (large transactions) |
-| `/api/market/netflow` | GET | 0.003 STX | Hourly net flow of funds |
+| `/api/market/stats` | GET | Free | Stacks DeFi market statistics |
+| `/api/market/gainers` | GET | Free | Top gaining tokens by price change |
+| `/api/market/losers` | GET | Free | Top losing tokens by price change |
+| `/api/market/whales` | GET | Free | Recent whale trades (large transactions) |
+| `/api/market/netflow` | GET | Free | Hourly net flow of funds |
 
-### Tenero Pools & Tokens
+### Tenero Pools & Tokens (Free)
 
 | Endpoint | Method | Price | Description |
 |----------|--------|-------|-------------|
-| `/api/pools/trending` | GET | 0.002 STX | Trending liquidity pools by activity |
-| `/api/pools/ohlc` | POST | 0.003 STX | Pool OHLCV candlestick data |
-| `/api/tokens/summary` | POST | 0.003 STX | Token market summary with weighted price |
-| `/api/tokens/details` | POST | 0.003 STX | Full token details (supply, holders) |
+| `/api/pools/trending` | GET | Free | Trending liquidity pools by activity |
+| `/api/pools/ohlc` | POST | Free | Pool OHLCV candlestick data |
+| `/api/tokens/summary` | POST | Free | Token market summary with weighted price |
+| `/api/tokens/details` | POST | Free | Full token details (supply, holders) |
 
 ### Tenero Wallet Analytics (AI-Enhanced)
 
@@ -173,5 +173,5 @@ scripts/
 ## Data Sources
 
 - **AI Analysis**: OpenRouter (Grok 4.1 Fast, Claude 3.5 Sonnet)
-- **Market Data**: [Tenero API](https://docs.tenero.io/) (formerly STXTools)
+- **Market Data**: [Tenero API](https://docs.tenero.io/) (free public endpoints, formerly STXTools)
 - **Blockchain Data**: [Hiro Stacks API](https://docs.hiro.so/stacks)

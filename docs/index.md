@@ -5,10 +5,10 @@ nav_order: 1
 
 # x402-stacks API
 
-A Cloudflare Worker that exposes paid, x402-protected endpoints for Stacks and Bitcoin analytics. Free routes give service status and discovery, while paid routes enforce on-chain payment settlement in STX or sBTC.
+A Cloudflare Worker that exposes paid, x402-protected AI analytics plus free market data endpoints for Stacks and Bitcoin. Free routes include service status, discovery, and Tenero market data, while paid routes enforce on-chain settlement in STX or sBTC.
 
 {: .free }
-> Free endpoints (`/`, `/health`) do not require a payment header.
+> Free endpoints (`/`, `/health`, and Tenero market data routes under `/api/market`, `/api/pools`, `/api/tokens`) do not require a payment header.
 
 {: .paid }
 > Paid endpoints require an `x-payment` header with a signed Stacks transaction that satisfies the 402 payment request.
@@ -21,7 +21,7 @@ A Cloudflare Worker that exposes paid, x402-protected endpoints for Stacks and B
 curl -s https://<your-worker-domain>/health
 ```
 
-### 2) Request payment requirements
+### 2) Request payment requirements (paid endpoints)
 
 ```bash
 curl -i https://<your-worker-domain>/api/news
@@ -66,7 +66,7 @@ curl -s \
 ## What you get
 
 - AI-assisted analytics for Stacks wallets, contracts, and market activity.
-- Market data from the Tenero API (formerly STXTools).
+- Free market data from the Tenero API (formerly STXTools).
 - AI summaries and sentiment analysis powered by OpenRouter models.
 - x402 payment enforcement with explicit settlement metadata in responses.
 

@@ -11,13 +11,13 @@ Request flow:
 
 1. `src/worker.ts` receives the request and matches the route.
 2. `src/config.ts` builds runtime configuration (network, addresses, URLs).
-3. Paid endpoints call `src/utils/payment.ts` to enforce x402 payment settlement.
+3. Paid endpoints call `src/utils/payment.ts` to enforce x402 payment settlement; free external data endpoints skip this step.
 4. Service modules fetch data or run AI analysis, then `src/utils/response.ts` returns a normalized JSON response.
 
 Key components:
 
 - **Worker entry**: single `fetch` handler that routes to endpoint handlers.
-- **Payment enforcement**: creates 402 requirements, settles signed transactions via the facilitator, and embeds settlement info in responses.
+- **Payment enforcement**: creates 402 requirements, settles signed transactions via the facilitator, and embeds settlement info in responses for paid routes.
 - **AI services**: OpenRouter-backed analysis for news, audits, sentiment, and wallet classification.
 - **Market data**: Tenero API client plus domain-specific wrappers.
 - **Stacks data**: Hiro API lookups for contract source and wallet metrics.
@@ -71,6 +71,6 @@ Environment variables loaded by `createRuntimeConfig`:
 
 ## Architectural notes
 
-- Every paid route funnels through `requirePayment`, so payment validation is consistent across the API.
+- Every paid route funnels through `requirePayment`, so payment validation is consistent across the API. Free market data routes bypass payment checks and do not return settlement metadata.
 - Service modules isolate external dependencies (OpenRouter, Hiro, Tenero) and keep worker routing thin.
 - API responses are intentionally normalized so clients can check `success` before inspecting `data`.
