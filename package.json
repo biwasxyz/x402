@@ -6,7 +6,10 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "typecheck": "tsc --noEmit",
-    "test:client": "node scripts/test-client.js"
+    "test:client": "node scripts/test-client.js",
+    "analytics": "bun run scripts/analytics.ts",
+    "analytics:json": "bun run scripts/analytics.ts --json",
+    "analytics:ui": "open scripts/analytics.html"
   },
   "dependencies": {
     "@openrouter/sdk": "^0.3.10"

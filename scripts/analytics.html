@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>x402-api Worker Analytics</title>
+  <style>
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-tertiary: #334155;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --accent-blue: #3b82f6;
+      --accent-green: #22c55e;
+      --accent-red: #ef4444;
+      --accent-yellow: #eab308;
+      --accent-purple: #a855f7;
+      --border-color: #475569;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    .worker-name {
+      color: var(--accent-blue);
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .controls label {
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    .controls input, .controls select {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    .controls button {
+      background: var(--accent-blue);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+
+    .controls button:hover {
+      background: #2563eb;
+    }
+
+    .controls button:disabled {
+      background: var(--bg-tertiary);
+      cursor: not-allowed;
+    }
+
+    .status-bar {
+      background: var(--bg-secondary);
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .status-bar .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-green);
+    }
+
+    .status-dot.loading {
+      background: var(--accent-yellow);
+      animation: pulse 1s infinite;
+    }
+
+    .status-dot.error {
+      background: var(--accent-red);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .metric-card {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid var(--border-color);
+    }
+
+    .metric-card .label {
+      color: var(--text-secondary);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .metric-card .value {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .metric-card .value.error {
+      color: var(--accent-red);
+    }
+
+    .metric-card .value.success {
+      color: var(--accent-green);
+    }
+
+    .metric-card .subvalue {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .section {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+      border: 1px solid var(--border-color);
+    }
+
+    .section h2 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section h2::before {
+      content: '';
+      display: block;
+      width: 4px;
+      height: 16px;
+      background: var(--accent-blue);
+      border-radius: 2px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    th {
+      color: var(--text-secondary);
+      font-weight: 500;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+      background: var(--bg-tertiary);
+    }
+
+    th:first-child {
+      border-radius: 6px 0 0 0;
+    }
+
+    th:last-child {
+      border-radius: 0 6px 0 0;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: rgba(59, 130, 246, 0.05);
+    }
+
+    td {
+      color: var(--text-primary);
+    }
+
+    .mono {
+      font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+      font-size: 13px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .badge.success {
+      background: rgba(34, 197, 94, 0.2);
+      color: var(--accent-green);
+    }
+
+    .badge.error {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--accent-red);
+    }
+
+    .badge.warning {
+      background: rgba(234, 179, 8, 0.2);
+      color: var(--accent-yellow);
+    }
+
+    .progress-bar {
+      height: 6px;
+      background: var(--bg-tertiary);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .progress-bar .fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+
+    .fill.blue { background: var(--accent-blue); }
+    .fill.green { background: var(--accent-green); }
+    .fill.red { background: var(--accent-red); }
+    .fill.purple { background: var(--accent-purple); }
+
+    .error-message {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid var(--accent-red);
+      border-radius: 8px;
+      padding: 16px;
+      color: var(--accent-red);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-secondary);
+    }
+
+    .empty-state p {
+      margin-bottom: 8px;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 900px) {
+      .two-col {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .token-setup {
+      background: var(--bg-secondary);
+      border: 1px dashed var(--border-color);
+      border-radius: 12px;
+      padding: 32px;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .token-setup h2 {
+      margin-bottom: 16px;
+    }
+
+    .token-setup input {
+      width: 100%;
+      max-width: 500px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      color: var(--text-primary);
+      font-size: 14px;
+    }
+
+    .token-setup .hint {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 8px;
+    }
+
+    .token-setup a {
+      color: var(--accent-blue);
+    }
+
+    .loading-skeleton {
+      background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-secondary) 50%, var(--bg-tertiary) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 4px;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Worker Analytics: <span class="worker-name">x402-api</span></h1>
+      <div class="controls">
+        <label for="timeRange">Time Range:</label>
+        <select id="timeRange">
+          <option value="1">Last 1 hour</option>
+          <option value="6">Last 6 hours</option>
+          <option value="24" selected>Last 24 hours</option>
+          <option value="72">Last 3 days</option>
+          <option value="168">Last 7 days</option>
+          <option value="720">Last 30 days</option>
+        </select>
+        <button id="refreshBtn" onclick="fetchAnalytics()">Refresh</button>
+      </div>
+    </header>
+
+    <div id="tokenSetup" class="token-setup">
+      <h2>Enter Cloudflare API Token</h2>
+      <p style="color: var(--text-secondary); margin-bottom: 16px;">
+        Required permission: <strong>Account Analytics:Read</strong>
+      </p>
+      <input type="password" id="apiToken" placeholder="Enter your Cloudflare API token" />
+      <br>
+      <button onclick="saveToken()">Save & Load Analytics</button>
+      <p class="hint">
+        <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank">Create API Token</a>
+        | Token is stored locally in your browser
+      </p>
+    </div>
+
+    <div id="dashboard" style="display: none;">
+      <div class="status-bar">
+        <div class="status">
+          <div id="statusDot" class="status-dot"></div>
+          <span id="statusText">Ready</span>
+        </div>
+        <span id="lastUpdated" style="color: var(--text-secondary); font-size: 13px;"></span>
+      </div>
+
+      <div id="errorContainer"></div>
+
+      <!-- Summary Metrics -->
+      <div class="grid" id="summaryGrid">
+        <div class="metric-card">
+          <div class="label">Total Requests</div>
+          <div class="value" id="totalRequests">-</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Total Errors</div>
+          <div class="value error" id="totalErrors">-</div>
+          <div class="subvalue" id="errorRate">-</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Subrequests</div>
+          <div class="value" id="totalSubrequests">-</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Avg CPU Time</div>
+          <div class="value" id="avgCpuTime">-</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Avg Duration</div>
+          <div class="value" id="avgDuration">-</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Response Size (Avg)</div>
+          <div class="value" id="avgResponseSize">-</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <!-- CPU Time Percentiles -->
+        <div class="section">
+          <h2>CPU Time Percentiles</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Percentile</th>
+                <th>Value</th>
+                <th>Distribution</th>
+              </tr>
+            </thead>
+            <tbody id="cpuTimeTable">
+              <tr><td colspan="3" class="empty-state">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Duration Percentiles -->
+        <div class="section">
+          <h2>Request Duration Percentiles</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Percentile</th>
+                <th>Value</th>
+                <th>Distribution</th>
+              </tr>
+            </thead>
+            <tbody id="durationTable">
+              <tr><td colspan="3" class="empty-state">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <!-- Response Size Percentiles -->
+        <div class="section">
+          <h2>Response Body Size Percentiles</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Percentile</th>
+                <th>Value</th>
+                <th>Distribution</th>
+              </tr>
+            </thead>
+            <tbody id="responseSizeTable">
+              <tr><td colspan="3" class="empty-state">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Wall Time Percentiles -->
+        <div class="section">
+          <h2>Wall Time Percentiles</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Percentile</th>
+                <th>Value</th>
+                <th>Distribution</th>
+              </tr>
+            </thead>
+            <tbody id="wallTimeTable">
+              <tr><td colspan="3" class="empty-state">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Status Breakdown -->
+      <div class="section">
+        <h2>Status Breakdown</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Requests</th>
+              <th>Errors</th>
+              <th>Error Rate</th>
+              <th>Distribution</th>
+            </tr>
+          </thead>
+          <tbody id="statusTable">
+            <tr><td colspan="5" class="empty-state">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Hourly Breakdown -->
+      <div class="section">
+        <h2>Hourly Breakdown</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Hour</th>
+              <th>Requests</th>
+              <th>Errors</th>
+              <th>Avg CPU</th>
+              <th>Avg Duration</th>
+            </tr>
+          </thead>
+          <tbody id="hourlyTable">
+            <tr><td colspan="5" class="empty-state">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- All Available Metrics Reference -->
+      <div class="section">
+        <h2>All Available Worker Metrics (Reference)</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Metric</th>
+              <th>Description</th>
+              <th>Type</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Sum</td><td class="mono">requests</td><td>Total number of requests</td><td><span class="badge success">Counter</span></td></tr>
+            <tr><td>Sum</td><td class="mono">errors</td><td>Total number of errors</td><td><span class="badge error">Counter</span></td></tr>
+            <tr><td>Sum</td><td class="mono">subrequests</td><td>Total fetch/subrequests made</td><td><span class="badge success">Counter</span></td></tr>
+            <tr><td>Sum</td><td class="mono">responseBodySize</td><td>Total response body bytes</td><td><span class="badge success">Counter</span></td></tr>
+            <tr><td>Sum</td><td class="mono">wallTime</td><td>Total wall clock time (us)</td><td><span class="badge success">Counter</span></td></tr>
+            <tr><td>Avg</td><td class="mono">cpuTime</td><td>Average CPU time per request</td><td><span class="badge warning">Gauge</span></td></tr>
+            <tr><td>Avg</td><td class="mono">duration</td><td>Average request duration</td><td><span class="badge warning">Gauge</span></td></tr>
+            <tr><td>Avg</td><td class="mono">responseBodySize</td><td>Average response size</td><td><span class="badge warning">Gauge</span></td></tr>
+            <tr><td>Avg</td><td class="mono">sampleInterval</td><td>Sampling interval</td><td><span class="badge warning">Gauge</span></td></tr>
+            <tr><td>Quantile</td><td class="mono">cpuTimeP25-P999</td><td>CPU time percentiles (25,50,75,90,99,99.9)</td><td><span class="badge">Percentile</span></td></tr>
+            <tr><td>Quantile</td><td class="mono">durationP25-P999</td><td>Duration percentiles (25,50,75,90,99,99.9)</td><td><span class="badge">Percentile</span></td></tr>
+            <tr><td>Quantile</td><td class="mono">responseBodySizeP25-P999</td><td>Response size percentiles</td><td><span class="badge">Percentile</span></td></tr>
+            <tr><td>Quantile</td><td class="mono">wallTimeP25-P999</td><td>Wall time percentiles</td><td><span class="badge">Percentile</span></td></tr>
+            <tr><td>Dimension</td><td class="mono">datetime</td><td>Timestamp of metric</td><td><span class="badge">Filter</span></td></tr>
+            <tr><td>Dimension</td><td class="mono">datetimeHour</td><td>Hourly bucket</td><td><span class="badge">Filter</span></td></tr>
+            <tr><td>Dimension</td><td class="mono">datetimeMinute</td><td>Minute bucket</td><td><span class="badge">Filter</span></td></tr>
+            <tr><td>Dimension</td><td class="mono">scriptName</td><td>Worker script name</td><td><span class="badge">Filter</span></td></tr>
+            <tr><td>Dimension</td><td class="mono">status</td><td>Request status (success/error)</td><td><span class="badge">Filter</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const GRAPHQL_ENDPOINT = 'https://api.cloudflare.com/client/v4/graphql';
+    const ACCOUNT_ID = 'c4cd2fdc1a3327a4fcec8c151333c267';
+    const SCRIPT_NAME = 'x402-api';
+
+    // Check for saved token
+    const savedToken = localStorage.getItem('cf_api_token');
+    if (savedToken) {
+      document.getElementById('tokenSetup').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      fetchAnalytics();
+    }
+
+    function saveToken() {
+      const token = document.getElementById('apiToken').value.trim();
+      if (!token) {
+        alert('Please enter an API token');
+        return;
+      }
+      localStorage.setItem('cf_api_token', token);
+      document.getElementById('tokenSetup').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      fetchAnalytics();
+    }
+
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+    }
+
+    function formatDuration(microseconds) {
+      if (microseconds < 1000) return `${microseconds.toFixed(2)} us`;
+      if (microseconds < 1000000) return `${(microseconds / 1000).toFixed(2)} ms`;
+      return `${(microseconds / 1000000).toFixed(2)} s`;
+    }
+
+    function formatNumber(num) {
+      return num.toLocaleString('en-US');
+    }
+
+    function setStatus(status, text) {
+      const dot = document.getElementById('statusDot');
+      const statusText = document.getElementById('statusText');
+      dot.className = 'status-dot ' + status;
+      statusText.textContent = text;
+    }
+
+    function showError(message) {
+      document.getElementById('errorContainer').innerHTML = `
+        <div class="error-message">${message}</div>
+      `;
+    }
+
+    function clearError() {
+      document.getElementById('errorContainer').innerHTML = '';
+    }
+
+    function renderPercentileTable(tableId, data, maxValue, formatter) {
+      const tbody = document.getElementById(tableId);
+      const percentiles = [
+        { key: 'P25', label: 'P25' },
+        { key: 'P50', label: 'P50 (Median)' },
+        { key: 'P75', label: 'P75' },
+        { key: 'P90', label: 'P90' },
+        { key: 'P99', label: 'P99' },
+        { key: 'P999', label: 'P99.9' }
+      ];
+
+      tbody.innerHTML = percentiles.map(p => {
+        const value = data[p.key] || 0;
+        const percent = maxValue > 0 ? (value / maxValue) * 100 : 0;
+        return `
+          <tr>
+            <td>${p.label}</td>
+            <td class="mono">${formatter(value)}</td>
+            <td style="width: 200px;">
+              <div class="progress-bar">
+                <div class="fill blue" style="width: ${Math.min(percent, 100)}%;"></div>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function fetchAnalytics() {
+      const token = localStorage.getItem('cf_api_token');
+      if (!token) {
+        document.getElementById('tokenSetup').style.display = 'block';
+        document.getElementById('dashboard').style.display = 'none';
+        return;
+      }
+
+      setStatus('loading', 'Fetching analytics...');
+      clearError();
+
+      const hoursBack = parseInt(document.getElementById('timeRange').value, 10);
+      const now = new Date();
+      const datetimeEnd = now.toISOString();
+      const datetimeStart = new Date(now.getTime() - hoursBack * 60 * 60 * 1000).toISOString();
+
+      const variables = {
+        accountTag: ACCOUNT_ID,
+        scriptName: SCRIPT_NAME,
+        datetimeStart,
+        datetimeEnd
+      };
+
+      const mainQuery = `
+        query GetWorkersAnalytics($accountTag: String!, $datetimeStart: Time!, $datetimeEnd: Time!, $scriptName: String!) {
+          viewer {
+            accounts(filter: { accountTag: $accountTag }) {
+              workersInvocationsAdaptive(
+                filter: {
+                  scriptName: $scriptName
+                  datetime_geq: $datetimeStart
+                  datetime_leq: $datetimeEnd
+                }
+                limit: 1000
+                orderBy: [datetime_DESC]
+              ) {
+                sum { requests errors subrequests responseBodySize wallTime }
+                quantiles {
+                  cpuTimeP25 cpuTimeP50 cpuTimeP75 cpuTimeP90 cpuTimeP99 cpuTimeP999
+                  durationP25 durationP50 durationP75 durationP90 durationP99 durationP999
+                  responseBodySizeP25 responseBodySizeP50 responseBodySizeP75 responseBodySizeP90 responseBodySizeP99 responseBodySizeP999
+                  wallTimeP25 wallTimeP50 wallTimeP75 wallTimeP90 wallTimeP99 wallTimeP999
+                }
+                avg { cpuTime duration responseBodySize sampleInterval }
+                dimensions { datetime scriptName status }
+              }
+            }
+          }
+        }
+      `;
+
+      const statusQuery = `
+        query GetWorkersStatusBreakdown($accountTag: String!, $datetimeStart: Time!, $datetimeEnd: Time!, $scriptName: String!) {
+          viewer {
+            accounts(filter: { accountTag: $accountTag }) {
+              workersInvocationsAdaptive(
+                filter: { scriptName: $scriptName datetime_geq: $datetimeStart datetime_leq: $datetimeEnd }
+                limit: 100
+                orderBy: [sum_requests_DESC]
+              ) {
+                sum { requests errors }
+                dimensions { status scriptName }
+              }
+            }
+          }
+        }
+      `;
+
+      const hourlyQuery = `
+        query GetWorkersHourlyBreakdown($accountTag: String!, $datetimeStart: Time!, $datetimeEnd: Time!, $scriptName: String!) {
+          viewer {
+            accounts(filter: { accountTag: $accountTag }) {
+              workersInvocationsAdaptive(
+                filter: { scriptName: $scriptName datetime_geq: $datetimeStart datetime_leq: $datetimeEnd }
+                limit: 168
+                orderBy: [datetimeHour_DESC]
+              ) {
+                sum { requests errors subrequests }
+                avg { cpuTime duration }
+                dimensions { datetimeHour scriptName }
+              }
+            }
+          }
+        }
+      `;
+
+      try {
+        const [mainRes, statusRes, hourlyRes] = await Promise.all([
+          fetch(GRAPHQL_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: mainQuery, variables })
+          }),
+          fetch(GRAPHQL_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: statusQuery, variables })
+          }),
+          fetch(GRAPHQL_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: hourlyQuery, variables })
+          })
+        ]);
+
+        const [mainData, statusData, hourlyData] = await Promise.all([
+          mainRes.json(), statusRes.json(), hourlyRes.json()
+        ]);
+
+        // Check for auth errors
+        if (mainData.errors?.some(e => e.message.includes('authentication'))) {
+          localStorage.removeItem('cf_api_token');
+          showError('Authentication failed. Please check your API token and ensure it has Account Analytics:Read permission.');
+          setStatus('error', 'Auth failed');
+          return;
+        }
+
+        if (mainData.errors) {
+          showError(`GraphQL Error: ${mainData.errors.map(e => e.message).join(', ')}`);
+          setStatus('error', 'Query failed');
+          return;
+        }
+
+        const mainMetrics = mainData.data?.viewer?.accounts?.[0]?.workersInvocationsAdaptive || [];
+        const statusMetrics = statusData.data?.viewer?.accounts?.[0]?.workersInvocationsAdaptive || [];
+        const hourlyMetrics = hourlyData.data?.viewer?.accounts?.[0]?.workersInvocationsAdaptive || [];
+
+        if (mainMetrics.length === 0) {
+          showError('No metrics data available for the specified time range. The worker may have no traffic or the time range is too narrow.');
+          setStatus('', 'No data');
+          return;
+        }
+
+        // Aggregate totals
+        const totals = mainMetrics.reduce((acc, m) => ({
+          requests: acc.requests + (m.sum?.requests || 0),
+          errors: acc.errors + (m.sum?.errors || 0),
+          subrequests: acc.subrequests + (m.sum?.subrequests || 0),
+          responseBodySize: acc.responseBodySize + (m.sum?.responseBodySize || 0),
+          wallTime: acc.wallTime + (m.sum?.wallTime || 0)
+        }), { requests: 0, errors: 0, subrequests: 0, responseBodySize: 0, wallTime: 0 });
+
+        const latestMetric = mainMetrics[0];
+        const quantiles = latestMetric?.quantiles || {};
+        const avg = latestMetric?.avg || {};
+
+        // Update summary cards
+        document.getElementById('totalRequests').textContent = formatNumber(totals.requests);
+        document.getElementById('totalErrors').textContent = formatNumber(totals.errors);
+        document.getElementById('errorRate').textContent = `${((totals.errors / totals.requests) * 100 || 0).toFixed(2)}% error rate`;
+        document.getElementById('totalSubrequests').textContent = formatNumber(totals.subrequests);
+        document.getElementById('avgCpuTime').textContent = formatDuration(avg.cpuTime || 0);
+        document.getElementById('avgDuration').textContent = formatDuration(avg.duration || 0);
+        document.getElementById('avgResponseSize').textContent = formatBytes(avg.responseBodySize || 0);
+
+        // Render percentile tables
+        renderPercentileTable('cpuTimeTable', {
+          P25: quantiles.cpuTimeP25,
+          P50: quantiles.cpuTimeP50,
+          P75: quantiles.cpuTimeP75,
+          P90: quantiles.cpuTimeP90,
+          P99: quantiles.cpuTimeP99,
+          P999: quantiles.cpuTimeP999
+        }, quantiles.cpuTimeP999 || 1, formatDuration);
+
+        renderPercentileTable('durationTable', {
+          P25: quantiles.durationP25,
+          P50: quantiles.durationP50,
+          P75: quantiles.durationP75,
+          P90: quantiles.durationP90,
+          P99: quantiles.durationP99,
+          P999: quantiles.durationP999
+        }, quantiles.durationP999 || 1, formatDuration);
+
+        renderPercentileTable('responseSizeTable', {
+          P25: quantiles.responseBodySizeP25,
+          P50: quantiles.responseBodySizeP50,
+          P75: quantiles.responseBodySizeP75,
+          P90: quantiles.responseBodySizeP90,
+          P99: quantiles.responseBodySizeP99,
+          P999: quantiles.responseBodySizeP999
+        }, quantiles.responseBodySizeP999 || 1, formatBytes);
+
+        renderPercentileTable('wallTimeTable', {
+          P25: quantiles.wallTimeP25,
+          P50: quantiles.wallTimeP50,
+          P75: quantiles.wallTimeP75,
+          P90: quantiles.wallTimeP90,
+          P99: quantiles.wallTimeP99,
+          P999: quantiles.wallTimeP999
+        }, quantiles.wallTimeP999 || 1, formatDuration);
+
+        // Status breakdown
+        const statusTbody = document.getElementById('statusTable');
+        const maxStatusRequests = Math.max(...statusMetrics.map(m => m.sum?.requests || 0), 1);
+        if (statusMetrics.length > 0) {
+          statusTbody.innerHTML = statusMetrics.map(m => {
+            const requests = m.sum?.requests || 0;
+            const errors = m.sum?.errors || 0;
+            const errorRate = ((errors / requests) * 100 || 0).toFixed(2);
+            const percent = (requests / maxStatusRequests) * 100;
+            const status = m.dimensions?.status || 'unknown';
+            const badgeClass = status === 'ok' || status === 'success' ? 'success' : status === 'error' ? 'error' : 'warning';
+            return `
+              <tr>
+                <td><span class="badge ${badgeClass}">${status}</span></td>
+                <td class="mono">${formatNumber(requests)}</td>
+                <td class="mono">${formatNumber(errors)}</td>
+                <td>${errorRate}%</td>
+                <td style="width: 200px;">
+                  <div class="progress-bar">
+                    <div class="fill ${badgeClass === 'error' ? 'red' : 'green'}" style="width: ${percent}%;"></div>
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join('');
+        } else {
+          statusTbody.innerHTML = '<tr><td colspan="5" class="empty-state">No status data available</td></tr>';
+        }
+
+        // Hourly breakdown
+        const hourlyTbody = document.getElementById('hourlyTable');
+        if (hourlyMetrics.length > 0) {
+          hourlyTbody.innerHTML = hourlyMetrics.slice(0, 24).map(m => {
+            const hour = m.dimensions?.datetimeHour || 'N/A';
+            const displayHour = hour !== 'N/A' ? new Date(hour).toLocaleString() : hour;
+            return `
+              <tr>
+                <td class="mono">${displayHour}</td>
+                <td class="mono">${formatNumber(m.sum?.requests || 0)}</td>
+                <td class="mono">${formatNumber(m.sum?.errors || 0)}</td>
+                <td class="mono">${formatDuration(m.avg?.cpuTime || 0)}</td>
+                <td class="mono">${formatDuration(m.avg?.duration || 0)}</td>
+              </tr>
+            `;
+          }).join('');
+        } else {
+          hourlyTbody.innerHTML = '<tr><td colspan="5" class="empty-state">No hourly data available</td></tr>';
+        }
+
+        setStatus('', 'Updated');
+        document.getElementById('lastUpdated').textContent = `Last updated: ${new Date().toLocaleString()}`;
+
+      } catch (error) {
+        console.error('Fetch error:', error);
+        showError(`Failed to fetch analytics: ${error.message}`);
+        setStatus('error', 'Fetch failed');
+      }
+    }
+
+    // Auto-refresh every 5 minutes
+    setInterval(() => {
+      if (localStorage.getItem('cf_api_token')) {
+        fetchAnalytics();
+      }
+    }, 5 * 60 * 1000);
+  </script>
+</body>
+</html>
