@@ -5,7 +5,9 @@
       "Bash(npm run build:*)",
       "Bash(npm run:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "WebFetch(domain:developers.cloudflare.com)",
+      "Bash(CLOUDFLARE_API_TOKEN=ti2xxIg2myStIqd5bK3OUOb7Ah_WUugpBG4tlEoR bun run:*)"
     ]
   }
 }

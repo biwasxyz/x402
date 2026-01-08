@@ -21,6 +21,7 @@ import { getTrendingPools, getPoolOhlc } from "./services/tenero-pools.service";
 import { getTokenSummary, getTokenDetails } from "./services/tenero-tokens.service";
 import { TrendingTimeframe } from "./services/tenero/types";
 import { analyzeWalletTrading, analyzeWalletPnl } from "./services/tenero-wallets.service";
+import { ANALYTICS_HTML } from "./analytics-page";
 
 
 type Env = EnvBindings & Record<string, string | undefined>;
@@ -169,6 +170,18 @@ export default {
     // Health check (free)
     if (method === "GET" && url.pathname === "/health") {
       return jsonResponse({ status: "ok", timestamp: new Date().toISOString() });
+    }
+
+    // Analytics dashboard (free, public)
+    if (method === "GET" && url.pathname === "/analytics") {
+      return new Response(ANALYTICS_HTML, {
+        status: 200,
+        headers: {
+          "content-type": "text/html; charset=utf-8",
+          "access-control-allow-origin": "*",
+          "cache-control": "public, max-age=300",
+        },
+      });
     }
 
     // Root info (free)

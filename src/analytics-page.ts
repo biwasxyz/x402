@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+// Analytics dashboard HTML - served at /analytics route
+export const ANALYTICS_HTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -294,7 +295,6 @@
 
       <div id="errorContainer"></div>
 
-      <!-- Summary Metrics -->
       <div class="grid" id="summaryGrid">
         <div class="metric-card">
           <div class="label">Total Requests</div>
@@ -322,7 +322,6 @@
         </div>
       </div>
 
-      <!-- Status Breakdown -->
       <div class="section">
         <h2>Status Breakdown</h2>
         <table>
@@ -341,7 +340,6 @@
         </table>
       </div>
 
-      <!-- Hourly Breakdown -->
       <div class="section">
         <h2>Hourly Breakdown</h2>
         <table>
@@ -361,7 +359,6 @@
         </table>
       </div>
 
-      <!-- Available Metrics Reference -->
       <div class="section">
         <h2>Available Worker Metrics (workersInvocationsAdaptive)</h2>
         <table>
@@ -418,9 +415,9 @@
 
     function formatDuration(microseconds) {
       if (!microseconds || microseconds === 0) return '0 us';
-      if (microseconds < 1000) return `${microseconds.toFixed(2)} us`;
-      if (microseconds < 1000000) return `${(microseconds / 1000).toFixed(2)} ms`;
-      return `${(microseconds / 1000000).toFixed(2)} s`;
+      if (microseconds < 1000) return microseconds.toFixed(2) + ' us';
+      if (microseconds < 1000000) return (microseconds / 1000).toFixed(2) + ' ms';
+      return (microseconds / 1000000).toFixed(2) + ' s';
     }
 
     function formatNumber(num) { return (num || 0).toLocaleString('en-US'); }
@@ -431,7 +428,7 @@
     }
 
     function showError(message) {
-      document.getElementById('errorContainer').innerHTML = `<div class="error-message">${message}</div>`;
+      document.getElementById('errorContainer').innerHTML = '<div class="error-message">' + message + '</div>';
     }
 
     function clearError() { document.getElementById('errorContainer').innerHTML = ''; }
@@ -452,83 +449,36 @@
       const datetimeEnd = now.toISOString();
       const datetimeStart = new Date(now.getTime() - hoursBack * 60 * 60 * 1000).toISOString();
 
-      const variables = { accountTag: ACCOUNT_ID, scriptName: SCRIPT_NAME, datetimeStart, datetimeEnd };
+      const variables = { accountTag: ACCOUNT_ID, scriptName: SCRIPT_NAME, datetimeStart: datetimeStart, datetimeEnd: datetimeEnd };
 
-      const mainQuery = `
-        query GetWorkersAnalytics($accountTag: String!, $datetimeStart: Time!, $datetimeEnd: Time!, $scriptName: String!) {
-          viewer {
-            accounts(filter: { accountTag: $accountTag }) {
-              workersInvocationsAdaptive(
-                filter: { scriptName: $scriptName datetime_geq: $datetimeStart datetime_leq: $datetimeEnd }
-                limit: 1000
-                orderBy: [datetime_DESC]
-              ) {
-                sum { requests errors subrequests }
-                quantiles { cpuTimeP50 cpuTimeP99 }
-                dimensions { datetime scriptName status }
-              }
-            }
-          }
-        }
-      `;
+      const mainQuery = 'query GetWorkersAnalytics($accountTag: String!, $datetimeStart: Time!, $datetimeEnd: Time!, $scriptName: String!) { viewer { accounts(filter: { accountTag: $accountTag }) { workersInvocationsAdaptive( filter: { scriptName: $scriptName datetime_geq: $datetimeStart datetime_leq: $datetimeEnd } limit: 1000 orderBy: [datetime_DESC] ) { sum { requests errors subrequests } quantiles { cpuTimeP50 cpuTimeP99 } dimensions { datetime scriptName status } } } } }';
 
-      const statusQuery = `
-        query GetWorkersStatusBreakdown($accountTag: String!, $datetimeStart: Time!, $datetimeEnd: Time!, $scriptName: String!) {
-          viewer {
-            accounts(filter: { accountTag: $accountTag }) {
-              workersInvocationsAdaptive(
-                filter: { scriptName: $scriptName datetime_geq: $datetimeStart datetime_leq: $datetimeEnd }
-                limit: 100
-                orderBy: [sum_requests_DESC]
-              ) {
-                sum { requests errors }
-                dimensions { status scriptName }
-              }
-            }
-          }
-        }
-      `;
+      const statusQuery = 'query GetWorkersStatusBreakdown($accountTag: String!, $datetimeStart: Time!, $datetimeEnd: Time!, $scriptName: String!) { viewer { accounts(filter: { accountTag: $accountTag }) { workersInvocationsAdaptive( filter: { scriptName: $scriptName datetime_geq: $datetimeStart datetime_leq: $datetimeEnd } limit: 100 orderBy: [sum_requests_DESC] ) { sum { requests errors } dimensions { status scriptName } } } } }';
 
-      const hourlyQuery = `
-        query GetWorkersHourlyBreakdown($accountTag: String!, $datetimeStart: Time!, $datetimeEnd: Time!, $scriptName: String!) {
-          viewer {
-            accounts(filter: { accountTag: $accountTag }) {
-              workersInvocationsAdaptive(
-                filter: { scriptName: $scriptName datetime_geq: $datetimeStart datetime_leq: $datetimeEnd }
-                limit: 168
-                orderBy: [datetimeHour_DESC]
-              ) {
-                sum { requests errors subrequests }
-                quantiles { cpuTimeP50 cpuTimeP99 }
-                dimensions { datetimeHour scriptName }
-              }
-            }
-          }
-        }
-      `;
+      const hourlyQuery = 'query GetWorkersHourlyBreakdown($accountTag: String!, $datetimeStart: Time!, $datetimeEnd: Time!, $scriptName: String!) { viewer { accounts(filter: { accountTag: $accountTag }) { workersInvocationsAdaptive( filter: { scriptName: $scriptName datetime_geq: $datetimeStart datetime_leq: $datetimeEnd } limit: 168 orderBy: [datetimeHour_DESC] ) { sum { requests errors subrequests } quantiles { cpuTimeP50 cpuTimeP99 } dimensions { datetimeHour scriptName } } } } }';
 
       try {
         const [mainRes, statusRes, hourlyRes] = await Promise.all([
           fetch(GRAPHQL_ENDPOINT, {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: mainQuery, variables })
+            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: mainQuery, variables: variables })
           }),
           fetch(GRAPHQL_ENDPOINT, {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: statusQuery, variables })
+            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: statusQuery, variables: variables })
           }),
           fetch(GRAPHQL_ENDPOINT, {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: hourlyQuery, variables })
+            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: hourlyQuery, variables: variables })
           })
         ]);
 
         const [mainData, statusData, hourlyData] = await Promise.all([mainRes.json(), statusRes.json(), hourlyRes.json()]);
 
-        if (mainData.errors?.some(e => e.message.includes('authentication'))) {
+        if (mainData.errors && mainData.errors.some(function(e) { return e.message.includes('authentication'); })) {
           localStorage.removeItem('cf_api_token');
           showError('Authentication failed. Please check your API token and ensure it has Account Analytics:Read permission.');
           setStatus('error', 'Auth failed');
@@ -536,19 +486,18 @@
         }
 
         if (mainData.errors) {
-          showError(`GraphQL Error: ${mainData.errors.map(e => e.message).join(', ')}`);
+          showError('GraphQL Error: ' + mainData.errors.map(function(e) { return e.message; }).join(', '));
           setStatus('error', 'Query failed');
           return;
         }
 
-        const mainMetrics = mainData.data?.viewer?.accounts?.[0]?.workersInvocationsAdaptive || [];
-        const statusMetrics = statusData.data?.viewer?.accounts?.[0]?.workersInvocationsAdaptive || [];
-        const hourlyMetrics = hourlyData.data?.viewer?.accounts?.[0]?.workersInvocationsAdaptive || [];
+        const mainMetrics = (mainData.data && mainData.data.viewer && mainData.data.viewer.accounts && mainData.data.viewer.accounts[0] && mainData.data.viewer.accounts[0].workersInvocationsAdaptive) || [];
+        const statusMetrics = (statusData.data && statusData.data.viewer && statusData.data.viewer.accounts && statusData.data.viewer.accounts[0] && statusData.data.viewer.accounts[0].workersInvocationsAdaptive) || [];
+        const hourlyMetrics = (hourlyData.data && hourlyData.data.viewer && hourlyData.data.viewer.accounts && hourlyData.data.viewer.accounts[0] && hourlyData.data.viewer.accounts[0].workersInvocationsAdaptive) || [];
 
         if (mainMetrics.length === 0) {
           showError('No metrics data available for the specified time range. The worker may have no traffic.');
           setStatus('', 'No data');
-          // Clear the cards
           document.getElementById('totalRequests').textContent = '0';
           document.getElementById('totalErrors').textContent = '0';
           document.getElementById('successRate').textContent = '-';
@@ -560,92 +509,79 @@
           return;
         }
 
-        // Aggregate totals
-        const totals = mainMetrics.reduce((acc, m) => ({
-          requests: acc.requests + (m.sum?.requests || 0),
-          errors: acc.errors + (m.sum?.errors || 0),
-          subrequests: acc.subrequests + (m.sum?.subrequests || 0)
-        }), { requests: 0, errors: 0, subrequests: 0 });
-
-        // Get max percentile values
-        let cpuTimeP50 = 0, cpuTimeP99 = 0;
-        for (const m of mainMetrics) {
-          if (m.quantiles?.cpuTimeP50 > cpuTimeP50) cpuTimeP50 = m.quantiles.cpuTimeP50;
-          if (m.quantiles?.cpuTimeP99 > cpuTimeP99) cpuTimeP99 = m.quantiles.cpuTimeP99;
+        var totals = { requests: 0, errors: 0, subrequests: 0 };
+        for (var i = 0; i < mainMetrics.length; i++) {
+          var m = mainMetrics[i];
+          totals.requests += (m.sum && m.sum.requests) || 0;
+          totals.errors += (m.sum && m.sum.errors) || 0;
+          totals.subrequests += (m.sum && m.sum.subrequests) || 0;
         }
 
-        // Update summary cards
+        var cpuTimeP50 = 0, cpuTimeP99 = 0;
+        for (var i = 0; i < mainMetrics.length; i++) {
+          var m = mainMetrics[i];
+          if (m.quantiles && m.quantiles.cpuTimeP50 > cpuTimeP50) cpuTimeP50 = m.quantiles.cpuTimeP50;
+          if (m.quantiles && m.quantiles.cpuTimeP99 > cpuTimeP99) cpuTimeP99 = m.quantiles.cpuTimeP99;
+        }
+
         document.getElementById('totalRequests').textContent = formatNumber(totals.requests);
         document.getElementById('totalErrors').textContent = formatNumber(totals.errors);
-        document.getElementById('successRate').textContent = `${(((totals.requests - totals.errors) / totals.requests) * 100 || 0).toFixed(1)}%`;
+        document.getElementById('successRate').textContent = (((totals.requests - totals.errors) / totals.requests) * 100 || 0).toFixed(1) + '%';
         document.getElementById('totalSubrequests').textContent = formatNumber(totals.subrequests);
         document.getElementById('cpuTimeP50').textContent = formatDuration(cpuTimeP50);
         document.getElementById('cpuTimeP99').textContent = formatDuration(cpuTimeP99);
 
-        // Status breakdown
-        const statusTbody = document.getElementById('statusTable');
-        const maxStatusRequests = Math.max(...statusMetrics.map(m => m.sum?.requests || 0), 1);
+        var statusTbody = document.getElementById('statusTable');
+        var maxStatusRequests = 1;
+        for (var i = 0; i < statusMetrics.length; i++) {
+          var req = (statusMetrics[i].sum && statusMetrics[i].sum.requests) || 0;
+          if (req > maxStatusRequests) maxStatusRequests = req;
+        }
         if (statusMetrics.length > 0) {
-          statusTbody.innerHTML = statusMetrics.map(m => {
-            const requests = m.sum?.requests || 0;
-            const errors = m.sum?.errors || 0;
-            const errorRate = ((errors / requests) * 100 || 0).toFixed(2);
-            const percent = (requests / maxStatusRequests) * 100;
-            const status = m.dimensions?.status || 'unknown';
-            const badgeClass = status === 'ok' || status === 'success' ? 'success' : status === 'error' ? 'error' : 'warning';
-            return `
-              <tr>
-                <td><span class="badge ${badgeClass}">${status}</span></td>
-                <td class="mono">${formatNumber(requests)}</td>
-                <td class="mono">${formatNumber(errors)}</td>
-                <td>${errorRate}%</td>
-                <td style="width: 200px;">
-                  <div class="progress-bar">
-                    <div class="fill ${badgeClass === 'error' ? 'red' : 'green'}" style="width: ${percent}%;"></div>
-                  </div>
-                </td>
-              </tr>
-            `;
-          }).join('');
+          var html = '';
+          for (var i = 0; i < statusMetrics.length; i++) {
+            var m = statusMetrics[i];
+            var requests = (m.sum && m.sum.requests) || 0;
+            var errors = (m.sum && m.sum.errors) || 0;
+            var errorRate = ((errors / requests) * 100 || 0).toFixed(2);
+            var percent = (requests / maxStatusRequests) * 100;
+            var status = (m.dimensions && m.dimensions.status) || 'unknown';
+            var badgeClass = (status === 'ok' || status === 'success') ? 'success' : (status === 'error' ? 'error' : 'warning');
+            html += '<tr><td><span class="badge ' + badgeClass + '">' + status + '</span></td><td class="mono">' + formatNumber(requests) + '</td><td class="mono">' + formatNumber(errors) + '</td><td>' + errorRate + '%</td><td style="width: 200px;"><div class="progress-bar"><div class="fill ' + (badgeClass === 'error' ? 'red' : 'green') + '" style="width: ' + percent + '%;"></div></div></td></tr>';
+          }
+          statusTbody.innerHTML = html;
         } else {
           statusTbody.innerHTML = '<tr><td colspan="5" class="empty-state">No status data</td></tr>';
         }
 
-        // Hourly breakdown
-        const hourlyTbody = document.getElementById('hourlyTable');
+        var hourlyTbody = document.getElementById('hourlyTable');
         if (hourlyMetrics.length > 0) {
-          hourlyTbody.innerHTML = hourlyMetrics.slice(0, 24).map(m => {
-            const hour = m.dimensions?.datetimeHour || 'N/A';
-            const displayHour = hour !== 'N/A' ? hour.replace('T', ' ').replace('Z', '') : hour;
-            return `
-              <tr>
-                <td class="mono">${displayHour}</td>
-                <td class="mono">${formatNumber(m.sum?.requests || 0)}</td>
-                <td class="mono">${formatNumber(m.sum?.errors || 0)}</td>
-                <td class="mono">${formatNumber(m.sum?.subrequests || 0)}</td>
-                <td class="mono">${formatDuration(m.quantiles?.cpuTimeP50 || 0)}</td>
-                <td class="mono">${formatDuration(m.quantiles?.cpuTimeP99 || 0)}</td>
-              </tr>
-            `;
-          }).join('');
+          var html = '';
+          var limit = Math.min(hourlyMetrics.length, 24);
+          for (var i = 0; i < limit; i++) {
+            var m = hourlyMetrics[i];
+            var hour = (m.dimensions && m.dimensions.datetimeHour) || 'N/A';
+            var displayHour = hour !== 'N/A' ? hour.replace('T', ' ').replace('Z', '') : hour;
+            html += '<tr><td class="mono">' + displayHour + '</td><td class="mono">' + formatNumber((m.sum && m.sum.requests) || 0) + '</td><td class="mono">' + formatNumber((m.sum && m.sum.errors) || 0) + '</td><td class="mono">' + formatNumber((m.sum && m.sum.subrequests) || 0) + '</td><td class="mono">' + formatDuration((m.quantiles && m.quantiles.cpuTimeP50) || 0) + '</td><td class="mono">' + formatDuration((m.quantiles && m.quantiles.cpuTimeP99) || 0) + '</td></tr>';
+          }
+          hourlyTbody.innerHTML = html;
         } else {
           hourlyTbody.innerHTML = '<tr><td colspan="6" class="empty-state">No hourly data</td></tr>';
         }
 
         setStatus('', 'Updated');
-        document.getElementById('lastUpdated').textContent = `Last updated: ${new Date().toLocaleString()}`;
+        document.getElementById('lastUpdated').textContent = 'Last updated: ' + new Date().toLocaleString();
 
       } catch (error) {
         console.error('Fetch error:', error);
-        showError(`Failed to fetch analytics: ${error.message}`);
+        showError('Failed to fetch analytics: ' + error.message);
         setStatus('error', 'Fetch failed');
       }
     }
 
-    // Auto-refresh every 5 minutes
-    setInterval(() => {
+    setInterval(function() {
       if (localStorage.getItem('cf_api_token')) fetchAnalytics();
     }, 5 * 60 * 1000);
   </script>
 </body>
-</html>
+</html>`;
