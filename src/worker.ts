@@ -25,7 +25,17 @@ import { analyzeWalletTrading, analyzeWalletPnl } from "./services/tenero-wallet
 
 type Env = EnvBindings & Record<string, string | undefined>;
 
-// x402-stacks Endpoint Configurations (prices in STX)
+const OPENROUTER_ENDPOINTS = new Set([
+  "/api/news",
+  "/api/audit",
+  "/api/wallet/classify",
+  "/api/research/user",
+  "/api/sentiment",
+  "/api/wallet/trading",
+  "/api/wallet/pnl",
+]);
+
+// x402-stacks Endpoint Configurations (prices in STX, 0 = free)
 const ENDPOINTS: Record<string, EndpointConfig> = {
   "/api/news": {
     resource: "/api/news",
@@ -62,57 +72,57 @@ const ENDPOINTS: Record<string, EndpointConfig> = {
     resource: "/api/market/stats",
     description: "Stacks DeFi market statistics (volume, traders, pools)",
     method: "GET",
-    amountSTX: 0.001,
+    amountSTX: 0,
   },
   "/api/market/gainers": {
     resource: "/api/market/gainers",
     description: "Top gaining tokens by price change",
     method: "GET",
-    amountSTX: 0.001,
+    amountSTX: 0,
   },
   "/api/market/losers": {
     resource: "/api/market/losers",
     description: "Top losing tokens by price change",
     method: "GET",
-    amountSTX: 0.001,
+    amountSTX: 0,
   },
   "/api/market/whales": {
     resource: "/api/market/whales",
     description: "Recent whale trades (large transactions)",
     method: "GET",
-    amountSTX: 0.003,
+    amountSTX: 0,
   },
   "/api/market/netflow": {
     resource: "/api/market/netflow",
     description: "Hourly net flow of funds in/out of the market",
     method: "GET",
-    amountSTX: 0.003,
+    amountSTX: 0,
   },
   // Tenero Pools Endpoints
   "/api/pools/trending": {
     resource: "/api/pools/trending",
     description: "Trending liquidity pools by trading activity",
     method: "GET",
-    amountSTX: 0.002,
+    amountSTX: 0,
   },
   "/api/pools/ohlc": {
     resource: "/api/pools/ohlc",
     description: "OHLCV candlestick data for a pool",
     method: "POST",
-    amountSTX: 0.003,
+    amountSTX: 0,
   },
   // Tenero Tokens Endpoints
   "/api/tokens/summary": {
     resource: "/api/tokens/summary",
     description: "Token market summary with weighted price",
     method: "POST",
-    amountSTX: 0.003,
+    amountSTX: 0,
   },
   "/api/tokens/details": {
     resource: "/api/tokens/details",
     description: "Full token details including supply and holders",
     method: "POST",
-    amountSTX: 0.003,
+    amountSTX: 0,
   },
   // Tenero Wallet Analytics (AI-Enhanced)
   "/api/wallet/trading": {
@@ -184,7 +194,7 @@ export default {
     }
 
     // Initialize OpenRouter for API endpoints
-    if (url.pathname.startsWith("/api/")) {
+    if (OPENROUTER_ENDPOINTS.has(url.pathname)) {
       try {
         initOpenRouter(env.OPENROUTER_API_KEY);
       } catch (error) {
@@ -418,15 +428,9 @@ async function handleSentiment(request: Request, config: RuntimeConfig): Promise
 // Tenero Market Handlers
 
 async function handleMarketStats(request: Request, config: RuntimeConfig): Promise<Response> {
-  const endpointConfig = ENDPOINTS["/api/market/stats"];
   try {
-    const paymentResult = await requirePayment(request, config, endpointConfig);
-    if (!paymentResult.ok) {
-      return (paymentResult as PaymentFailure).response;
-    }
-
     const stats = await getMarketStats();
-    return sendSuccess(stats, 200, paymentResult.settlement);
+    return sendSuccess(stats, 200);
   } catch (error) {
     console.error("Market stats error:", error);
     if (error instanceof TeneroApiError) {
@@ -441,17 +445,11 @@ async function handleMarketStats(request: Request, config: RuntimeConfig): Promi
 }
 
 async function handleMarketGainers(request: Request, config: RuntimeConfig): Promise<Response> {
-  const endpointConfig = ENDPOINTS["/api/market/gainers"];
   try {
-    const paymentResult = await requirePayment(request, config, endpointConfig);
-    if (!paymentResult.ok) {
-      return (paymentResult as PaymentFailure).response;
-    }
-
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get("limit") || "10", 10);
     const gainers = await getTopGainers(Math.min(limit, 50));
-    return sendSuccess(gainers, 200, paymentResult.settlement);
+    return sendSuccess(gainers, 200);
   } catch (error) {
     console.error("Market gainers error:", error);
     if (error instanceof TeneroApiError) {
@@ -466,17 +464,11 @@ async function handleMarketGainers(request: Request, config: RuntimeConfig): Pro
 }
 
 async function handleMarketLosers(request: Request, config: RuntimeConfig): Promise<Response> {
-  const endpointConfig = ENDPOINTS["/api/market/losers"];
   try {
-    const paymentResult = await requirePayment(request, config, endpointConfig);
-    if (!paymentResult.ok) {
-      return (paymentResult as PaymentFailure).response;
-    }
-
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get("limit") || "10", 10);
     const losers = await getTopLosers(Math.min(limit, 50));
-    return sendSuccess(losers, 200, paymentResult.settlement);
+    return sendSuccess(losers, 200);
   } catch (error) {
     console.error("Market losers error:", error);
     if (error instanceof TeneroApiError) {
@@ -491,17 +483,11 @@ async function handleMarketLosers(request: Request, config: RuntimeConfig): Prom
 }
 
 async function handleMarketWhales(request: Request, config: RuntimeConfig): Promise<Response> {
-  const endpointConfig = ENDPOINTS["/api/market/whales"];
   try {
-    const paymentResult = await requirePayment(request, config, endpointConfig);
-    if (!paymentResult.ok) {
-      return (paymentResult as PaymentFailure).response;
-    }
-
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get("limit") || "20", 10);
     const whales = await getWhaleTrades(Math.min(limit, 100));
-    return sendSuccess(whales, 200, paymentResult.settlement);
+    return sendSuccess(whales, 200);
   } catch (error) {
     console.error("Market whales error:", error);
     if (error instanceof TeneroApiError) {
@@ -516,15 +502,9 @@ async function handleMarketWhales(request: Request, config: RuntimeConfig): Prom
 }
 
 async function handleMarketNetflow(request: Request, config: RuntimeConfig): Promise<Response> {
-  const endpointConfig = ENDPOINTS["/api/market/netflow"];
   try {
-    const paymentResult = await requirePayment(request, config, endpointConfig);
-    if (!paymentResult.ok) {
-      return (paymentResult as PaymentFailure).response;
-    }
-
     const netflow = await getHourlyNetflow();
-    return sendSuccess(netflow, 200, paymentResult.settlement);
+    return sendSuccess(netflow, 200);
   } catch (error) {
     console.error("Market netflow error:", error);
     if (error instanceof TeneroApiError) {
@@ -541,20 +521,14 @@ async function handleMarketNetflow(request: Request, config: RuntimeConfig): Pro
 // Tenero Pools Handlers
 
 async function handlePoolsTrending(request: Request, config: RuntimeConfig): Promise<Response> {
-  const endpointConfig = ENDPOINTS["/api/pools/trending"];
   try {
-    const paymentResult = await requirePayment(request, config, endpointConfig);
-    if (!paymentResult.ok) {
-      return (paymentResult as PaymentFailure).response;
-    }
-
     const url = new URL(request.url);
     const timeframe = (url.searchParams.get("timeframe") || "1d") as TrendingTimeframe;
     const validTimeframes: TrendingTimeframe[] = ["1h", "4h", "1d", "24h", "7d"];
     const tf = validTimeframes.includes(timeframe) ? timeframe : "1d";
 
     const pools = await getTrendingPools(tf);
-    return sendSuccess(pools, 200, paymentResult.settlement);
+    return sendSuccess(pools, 200);
   } catch (error) {
     console.error("Pools trending error:", error);
     if (error instanceof TeneroApiError) {
@@ -569,7 +543,6 @@ async function handlePoolsTrending(request: Request, config: RuntimeConfig): Pro
 }
 
 async function handlePoolsOhlc(request: Request, config: RuntimeConfig): Promise<Response> {
-  const endpointConfig = ENDPOINTS["/api/pools/ohlc"];
   const body = await parseJsonBody(request);
 
   if (body.error) {
@@ -577,11 +550,6 @@ async function handlePoolsOhlc(request: Request, config: RuntimeConfig): Promise
   }
 
   try {
-    const paymentResult = await requirePayment(request, config, endpointConfig);
-    if (!paymentResult.ok) {
-      return (paymentResult as PaymentFailure).response;
-    }
-
     const { poolId, period, limit } = body.data as {
       poolId?: string;
       period?: string;
@@ -596,7 +564,7 @@ async function handlePoolsOhlc(request: Request, config: RuntimeConfig): Promise
       period: period as "1m" | "5m" | "15m" | "1h" | "4h" | "1d" | undefined,
       limit: limit ? Math.min(limit, 1000) : undefined,
     });
-    return sendSuccess(ohlc, 200, paymentResult.settlement);
+    return sendSuccess(ohlc, 200);
   } catch (error) {
     console.error("Pools OHLC error:", error);
     if (error instanceof TeneroApiError) {
@@ -613,7 +581,6 @@ async function handlePoolsOhlc(request: Request, config: RuntimeConfig): Promise
 // Tenero Tokens Handlers
 
 async function handleTokensSummary(request: Request, config: RuntimeConfig): Promise<Response> {
-  const endpointConfig = ENDPOINTS["/api/tokens/summary"];
   const body = await parseJsonBody(request);
 
   if (body.error) {
@@ -621,18 +588,13 @@ async function handleTokensSummary(request: Request, config: RuntimeConfig): Pro
   }
 
   try {
-    const paymentResult = await requirePayment(request, config, endpointConfig);
-    if (!paymentResult.ok) {
-      return (paymentResult as PaymentFailure).response;
-    }
-
     const { tokenAddress } = body.data as { tokenAddress?: string };
     if (!tokenAddress) {
       return sendError("tokenAddress is required", 400, "MISSING_FIELD");
     }
 
     const summary = await getTokenSummary(tokenAddress);
-    return sendSuccess(summary, 200, paymentResult.settlement);
+    return sendSuccess(summary, 200);
   } catch (error) {
     console.error("Token summary error:", error);
     if (error instanceof TeneroApiError) {
@@ -647,7 +609,6 @@ async function handleTokensSummary(request: Request, config: RuntimeConfig): Pro
 }
 
 async function handleTokensDetails(request: Request, config: RuntimeConfig): Promise<Response> {
-  const endpointConfig = ENDPOINTS["/api/tokens/details"];
   const body = await parseJsonBody(request);
 
   if (body.error) {
@@ -655,18 +616,13 @@ async function handleTokensDetails(request: Request, config: RuntimeConfig): Pro
   }
 
   try {
-    const paymentResult = await requirePayment(request, config, endpointConfig);
-    if (!paymentResult.ok) {
-      return (paymentResult as PaymentFailure).response;
-    }
-
     const { tokenAddress } = body.data as { tokenAddress?: string };
     if (!tokenAddress) {
       return sendError("tokenAddress is required", 400, "MISSING_FIELD");
     }
 
     const details = await getTokenDetails(tokenAddress);
-    return sendSuccess(details, 200, paymentResult.settlement);
+    return sendSuccess(details, 200);
   } catch (error) {
     console.error("Token details error:", error);
     if (error instanceof TeneroApiError) {
