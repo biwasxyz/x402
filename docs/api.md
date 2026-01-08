@@ -87,7 +87,7 @@ Errors are returned as:
 
 ### GET /
 
-Service discovery. Returns the list of available endpoints and their prices (price `0` means free).
+Service discovery. Returns the list of available endpoints with `paymentRequired` and `price` (null when free).
 
 ```bash
 curl -s https://<your-worker-domain>/

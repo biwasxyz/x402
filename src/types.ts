@@ -19,7 +19,8 @@ export interface EndpointConfig {
   resource: string;
   description: string;
   method: "GET" | "POST";
-  amountSTX: number;
+  paymentRequired: boolean;
+  amount?: number;
   tokenType?: TokenType;
 }
 

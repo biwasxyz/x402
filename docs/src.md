@@ -42,7 +42,7 @@ Environment variables loaded by `createRuntimeConfig`:
 | `src/utils/response.ts` | `jsonResponse` | Serialize JSON with consistent headers. |
 | `src/utils/response.ts` | `sendSuccess` | Return `success: true` with optional settlement data. |
 | `src/utils/response.ts` | `sendError` | Return `success: false` with structured errors. |
-| `src/utils/payment.ts` | `STXtoMicroSTX` | Convert STX to microSTX for payment validation. |
+| `src/utils/payment.ts` | `toMinorUnits` | Convert token amounts to minor units for payment validation. |
 | `src/utils/payment.ts` | `createPaymentRequiredResponse` | Generate a 402 response with x402 requirements. |
 | `src/utils/payment.ts` | `requirePayment` | Validate `x-payment` and settle via facilitator. |
 | `src/services/openrouter.service.ts` | `initOpenRouter` | Initialize the OpenRouter client with the API key. |

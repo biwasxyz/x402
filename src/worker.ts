@@ -35,107 +35,114 @@ const OPENROUTER_ENDPOINTS = new Set([
   "/api/wallet/pnl",
 ]);
 
-// x402-stacks Endpoint Configurations (prices in STX, 0 = free)
+// x402-stacks Endpoint Configurations (prices in token units)
 const ENDPOINTS: Record<string, EndpointConfig> = {
   "/api/news": {
     resource: "/api/news",
     description: "Get latest Stacks and Bitcoin news with AI analysis",
     method: "GET",
-    amountSTX: 0.001, // 0.001 STX
+    paymentRequired: true,
+    amount: 0.001, // 0.001 STX
   },
   "/api/audit": {
     resource: "/api/audit",
     description: "Security audit for Clarity smart contracts",
     method: "POST",
-    amountSTX: 0.02, // 0.02 STX
+    paymentRequired: true,
+    amount: 0.02, // 0.02 STX
   },
   "/api/wallet/classify": {
     resource: "/api/wallet/classify",
     description: "Classify wallet behavior (trader, whale, bot, dao, bridge)",
     method: "POST",
-    amountSTX: 0.005, // 0.005 STX
+    paymentRequired: true,
+    amount: 0.005, // 0.005 STX
   },
   "/api/research/user": {
     resource: "/api/research/user",
     description: "Research user profile from X/Twitter and web sources",
     method: "POST",
-    amountSTX: 0.005, // 0.005 STX
+    paymentRequired: true,
+    amount: 0.005, // 0.005 STX
   },
   "/api/sentiment": {
     resource: "/api/sentiment",
     description: "Real-time sentiment analysis for crypto tokens on X/Twitter",
     method: "POST",
-    amountSTX: 0.005, // 0.005 STX
+    paymentRequired: true,
+    amount: 0.005, // 0.005 STX
   },
   // Tenero Market Data Endpoints
   "/api/market/stats": {
     resource: "/api/market/stats",
     description: "Stacks DeFi market statistics (volume, traders, pools)",
     method: "GET",
-    amountSTX: 0,
+    paymentRequired: false,
   },
   "/api/market/gainers": {
     resource: "/api/market/gainers",
     description: "Top gaining tokens by price change",
     method: "GET",
-    amountSTX: 0,
+    paymentRequired: false,
   },
   "/api/market/losers": {
     resource: "/api/market/losers",
     description: "Top losing tokens by price change",
     method: "GET",
-    amountSTX: 0,
+    paymentRequired: false,
   },
   "/api/market/whales": {
     resource: "/api/market/whales",
     description: "Recent whale trades (large transactions)",
     method: "GET",
-    amountSTX: 0,
+    paymentRequired: false,
   },
   "/api/market/netflow": {
     resource: "/api/market/netflow",
     description: "Hourly net flow of funds in/out of the market",
     method: "GET",
-    amountSTX: 0,
+    paymentRequired: false,
   },
   // Tenero Pools Endpoints
   "/api/pools/trending": {
     resource: "/api/pools/trending",
     description: "Trending liquidity pools by trading activity",
     method: "GET",
-    amountSTX: 0,
+    paymentRequired: false,
   },
   "/api/pools/ohlc": {
     resource: "/api/pools/ohlc",
     description: "OHLCV candlestick data for a pool",
     method: "POST",
-    amountSTX: 0,
+    paymentRequired: false,
   },
   // Tenero Tokens Endpoints
   "/api/tokens/summary": {
     resource: "/api/tokens/summary",
     description: "Token market summary with weighted price",
     method: "POST",
-    amountSTX: 0,
+    paymentRequired: false,
   },
   "/api/tokens/details": {
     resource: "/api/tokens/details",
     description: "Full token details including supply and holders",
     method: "POST",
-    amountSTX: 0,
+    paymentRequired: false,
   },
   // Tenero Wallet Analytics (AI-Enhanced)
   "/api/wallet/trading": {
     resource: "/api/wallet/trading",
     description: "AI-enhanced wallet trading behavior analysis",
     method: "POST",
-    amountSTX: 0.005,
+    paymentRequired: true,
+    amount: 0.005,
   },
   "/api/wallet/pnl": {
     resource: "/api/wallet/pnl",
     description: "AI-enhanced wallet profit/loss analysis",
     method: "POST",
-    amountSTX: 0.005,
+    paymentRequired: true,
+    amount: 0.005,
   },
 };
 
@@ -170,7 +177,13 @@ export default {
         path: endpoint.resource,
         method: endpoint.method,
         description: endpoint.description,
-        amountSTX: endpoint.amountSTX,
+        paymentRequired: endpoint.paymentRequired,
+        price: endpoint.paymentRequired
+          ? {
+              amount: endpoint.amount,
+              tokenType: endpoint.tokenType || "STX",
+            }
+          : null,
       }));
 
       return jsonResponse({

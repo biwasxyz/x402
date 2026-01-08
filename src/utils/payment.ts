@@ -10,9 +10,10 @@ function headersToObject(headers: Headers): Record<string, string> {
   return obj;
 }
 
-// Convert STX to microSTX
-export function STXtoMicroSTX(amount: number): bigint {
-  return BigInt(Math.round(amount * 1_000_000));
+// Convert token amount to minor units (STX uses 6 decimals, sBTC uses 8).
+export function toMinorUnits(amount: number, tokenType: TokenType): bigint {
+  const multiplier = tokenType === "STX" ? 1_000_000 : 100_000_000;
+  return BigInt(Math.round(amount * multiplier));
 }
 
 interface VerificationResult {
@@ -43,12 +44,19 @@ export function createPaymentRequiredResponse(
   config: RuntimeConfig,
   endpointConfig: EndpointConfig
 ): Response {
+  if (!endpointConfig.paymentRequired) {
+    return sendError("Payment not required for this endpoint", 400, "PAYMENT_NOT_REQUIRED");
+  }
+  if (endpointConfig.amount === undefined) {
+    return sendError("Payment amount not configured", 500, "PAYMENT_CONFIG_ERROR");
+  }
+
   const nonce = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
   const tokenType: TokenType = endpointConfig.tokenType || "STX";
 
   const response: x402PaymentRequired = {
-    maxAmountRequired: STXtoMicroSTX(endpointConfig.amountSTX).toString(),
+    maxAmountRequired: toMinorUnits(endpointConfig.amount, tokenType).toString(),
     resource: endpointConfig.resource,
     payTo: config.serverAddress,
     network: config.network,
@@ -66,6 +74,16 @@ export async function requirePayment(
   config: RuntimeConfig,
   endpointConfig: EndpointConfig
 ): Promise<PaymentCheckResult> {
+  if (!endpointConfig.paymentRequired) {
+    return { ok: true };
+  }
+  if (endpointConfig.amount === undefined) {
+    return {
+      ok: false,
+      response: sendError("Payment amount not configured", 500, "PAYMENT_CONFIG_ERROR"),
+    };
+  }
+
   const signedPayment = request.headers.get("x-payment");
   const tokenType: TokenType = endpointConfig.tokenType || "STX";
 
@@ -83,7 +101,7 @@ export async function requirePayment(
   }
 
   try {
-    const requiredAmount = STXtoMicroSTX(endpointConfig.amountSTX);
+    const requiredAmount = toMinorUnits(endpointConfig.amount, tokenType);
 
     const verification = await settleSignedPayment(signedPayment, config, {
       amount: requiredAmount,
