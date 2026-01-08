@@ -1,3 +1,5 @@
+import { trackedFetch } from "./analytics.service";
+
 export type StacksNetwork = "mainnet" | "testnet";
 
 export function getStacksApiUrl(network: StacksNetwork): string {
@@ -16,7 +18,7 @@ export async function getContractSource(contractIdentifier: string, stacksApiUrl
   const url = `${stacksApiUrl}/v2/contracts/source/${address}/${contractName}`;
   console.log(`[stacks.service] Fetching Clarity source: ${contractIdentifier} (${url})`);
 
-  const response = await fetch(url);
+  const response = await trackedFetch("/api/audit", url);
 
   if (response.status === 404) {
     throw new Error(`Contract not found: ${contractIdentifier}`);

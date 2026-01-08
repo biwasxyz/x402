@@ -237,9 +237,9 @@ export const ANALYTICS_HTML = `<!DOCTYPE html>
         <select id="timeRange" onchange="fetchAnalytics()">
           <option value="1">Last 1 hour</option>
           <option value="6">Last 6 hours</option>
-          <option value="24" selected>Last 24 hours</option>
+          <option value="24">Last 24 hours</option>
           <option value="72">Last 3 days</option>
-          <option value="168">Last 7 days</option>
+          <option value="168" selected>Last 7 days</option>
           <option value="720">Last 30 days</option>
         </select>
         <button onclick="fetchAnalytics()">Refresh</button>
@@ -304,86 +304,43 @@ export const ANALYTICS_HTML = `<!DOCTYPE html>
         </table>
       </div>
 
-      <!-- Subrequest Tracking -->
+      <!-- Subrequest Origins -->
       <div class="section">
-        <h2>Subrequest Tracking (Live)</h2>
+        <h2>Subrequest Origins</h2>
         <table>
           <thead>
             <tr>
-              <th>Target</th>
-              <th>Count</th>
-              <th>Errors</th>
-              <th>Avg Duration</th>
+              <th>Origin</th>
+              <th>Requests</th>
+              <th>2xx</th>
+              <th>4xx</th>
+              <th>5xx</th>
+              <th>Avg Response</th>
+              <th>Cache</th>
             </tr>
           </thead>
-          <tbody id="subrequestTable">
-            <tr><td colspan="4" class="empty-state">Loading...</td></tr>
+          <tbody id="originsTable">
+            <tr><td colspan="7" class="empty-state">Loading...</td></tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <!-- Hourly Breakdown -->
+    <!-- Endpoint Stats (persistent via KV) -->
     <div class="section">
-      <h2>Hourly Breakdown</h2>
+      <h2>Endpoint Stats</h2>
       <table>
         <thead>
           <tr>
-            <th>Hour (UTC)</th>
+            <th>Endpoint</th>
             <th>Requests</th>
             <th>Errors</th>
-            <th>Subreqs</th>
-            <th>CPU P50</th>
-            <th>CPU P99</th>
+            <th>Error Rate</th>
+            <th>Avg Duration</th>
           </tr>
         </thead>
-        <tbody id="hourlyTable">
-          <tr><td colspan="6" class="empty-state">Loading...</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Recent Subrequests -->
-    <div class="section">
-      <h2>Recent Subrequests (Live)</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Time</th>
-            <th>Endpoint</th>
-            <th>Target</th>
-            <th>Method</th>
-            <th>Status</th>
-            <th>Duration</th>
-          </tr>
-        </thead>
-        <tbody id="recentSubrequestsTable">
-          <tr><td colspan="6" class="empty-state">Loading...</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Available Metrics -->
-    <div class="section">
-      <h2>Available Metrics</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Category</th>
-            <th>Field</th>
-            <th>Description</th>
-            <th>Type</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td>sum</td><td class="mono">requests</td><td>Total number of requests</td><td><span class="badge success">Counter</span></td></tr>
-          <tr><td>sum</td><td class="mono">errors</td><td>Total number of errors</td><td><span class="badge error">Counter</span></td></tr>
-          <tr><td>sum</td><td class="mono">subrequests</td><td>Total fetch() calls made by worker</td><td><span class="badge info">Counter</span></td></tr>
-          <tr><td>quantiles</td><td class="mono">cpuTimeP50</td><td>Median CPU time (microseconds)</td><td><span class="badge warning">Percentile</span></td></tr>
-          <tr><td>quantiles</td><td class="mono">cpuTimeP99</td><td>99th percentile CPU time (microseconds)</td><td><span class="badge warning">Percentile</span></td></tr>
-          <tr><td>dimensions</td><td class="mono">status</td><td>Request status (success/error)</td><td><span class="badge">Filter</span></td></tr>
-          <tr><td>dimensions</td><td class="mono">datetimeHour</td><td>Hourly bucket</td><td><span class="badge">Filter</span></td></tr>
-          <tr><td>live</td><td class="mono">subrequestTracking</td><td>Real-time subrequest tracking per worker instance</td><td><span class="badge info">Live</span></td></tr>
+        <tbody id="endpointsTable">
+          <tr><td colspan="5" class="empty-state">Loading...</td></tr>
         </tbody>
       </table>
     </div>
@@ -398,12 +355,6 @@ export const ANALYTICS_HTML = `<!DOCTYPE html>
     }
 
     function formatNumber(num) { return (num || 0).toLocaleString('en-US'); }
-
-    function formatTime(isoString) {
-      if (!isoString) return 'N/A';
-      var d = new Date(isoString);
-      return d.toLocaleTimeString();
-    }
 
     function setStatus(status, text) {
       document.getElementById('statusDot').className = 'status-dot ' + status;
@@ -429,11 +380,6 @@ export const ANALYTICS_HTML = `<!DOCTYPE html>
         if (!data.success) {
           showError('Error: ' + (data.error || 'Unknown error'));
           setStatus('error', 'Error');
-
-          // Still show subrequest tracking if available
-          if (data.subrequestTracking) {
-            renderSubrequestTracking(data.subrequestTracking);
-          }
           return;
         }
 
@@ -459,21 +405,41 @@ export const ANALYTICS_HTML = `<!DOCTYPE html>
           statusTable.innerHTML = '<tr><td colspan="4" class="empty-state">No status data</td></tr>';
         }
 
-        // Render hourly breakdown
-        var hourlyTable = document.getElementById('hourlyTable');
-        var hourlyData = data.hourlyBreakdown || [];
-        if (hourlyData.length > 0) {
-          hourlyTable.innerHTML = hourlyData.map(function(h) {
-            var displayHour = h.hour ? h.hour.replace('T', ' ').replace('Z', '') : 'N/A';
-            return '<tr><td class="mono">' + displayHour + '</td><td class="mono">' + formatNumber(h.requests) + '</td><td class="mono">' + formatNumber(h.errors) + '</td><td class="mono">' + formatNumber(h.subrequests) + '</td><td class="mono">' + formatDuration(h.cpuTimeP50) + '</td><td class="mono">' + formatDuration(h.cpuTimeP99) + '</td></tr>';
+        // Render origins (subrequest targets from Cloudflare)
+        var originsTable = document.getElementById('originsTable');
+        var originsData = data.origins || [];
+        if (originsData.length > 0) {
+          originsTable.innerHTML = originsData.map(function(o) {
+            return '<tr>' +
+              '<td class="mono">' + o.hostname + '</td>' +
+              '<td class="mono">' + formatNumber(o.requests) + '</td>' +
+              '<td class="mono" style="color: var(--accent-green);">' + formatNumber(o.status['2xx']) + '</td>' +
+              '<td class="mono" style="color: var(--accent-yellow);">' + formatNumber(o.status['4xx']) + '</td>' +
+              '<td class="mono" style="color: var(--accent-red);">' + formatNumber(o.status['5xx']) + '</td>' +
+              '<td class="mono">' + o.avgResponseTime + '</td>' +
+              '<td class="mono">' + o.cacheRate + '</td>' +
+              '</tr>';
           }).join('');
         } else {
-          hourlyTable.innerHTML = '<tr><td colspan="6" class="empty-state">No hourly data</td></tr>';
+          originsTable.innerHTML = '<tr><td colspan="7" class="empty-state">No subrequest data</td></tr>';
         }
 
-        // Render subrequest tracking
-        if (data.subrequestTracking) {
-          renderSubrequestTracking(data.subrequestTracking);
+        // Render endpoint stats (in-memory tracking)
+        var endpointsTable = document.getElementById('endpointsTable');
+        var endpointData = data.endpointStats?.endpoints || [];
+        if (endpointData.length > 0) {
+          endpointsTable.innerHTML = endpointData.map(function(e) {
+            var errorClass = e.errors > 0 ? ' style="color: var(--accent-red);"' : '';
+            return '<tr>' +
+              '<td class="mono">' + e.endpoint + '</td>' +
+              '<td class="mono">' + formatNumber(e.requests) + '</td>' +
+              '<td class="mono"' + errorClass + '>' + formatNumber(e.errors) + '</td>' +
+              '<td class="mono">' + e.errorRate + '</td>' +
+              '<td class="mono">' + e.avgDuration + ' ms</td>' +
+              '</tr>';
+          }).join('');
+        } else {
+          endpointsTable.innerHTML = '<tr><td colspan="5" class="empty-state">No endpoint data yet</td></tr>';
         }
 
         setStatus('', 'Updated');
@@ -483,31 +449,6 @@ export const ANALYTICS_HTML = `<!DOCTYPE html>
         console.error('Fetch error:', error);
         showError('Failed to fetch analytics: ' + error.message);
         setStatus('error', 'Fetch failed');
-      }
-    }
-
-    function renderSubrequestTracking(tracking) {
-      // Subrequest by target
-      var subrequestTable = document.getElementById('subrequestTable');
-      var byTarget = tracking.byTarget || [];
-      if (byTarget.length > 0) {
-        subrequestTable.innerHTML = byTarget.map(function(t) {
-          return '<tr><td class="mono">' + t.target + '</td><td class="mono">' + formatNumber(t.count) + '</td><td class="mono">' + formatNumber(t.errors) + '</td><td class="mono">' + t.avgDuration + ' ms</td></tr>';
-        }).join('');
-      } else {
-        subrequestTable.innerHTML = '<tr><td colspan="4" class="empty-state">No subrequests tracked yet (resets on worker restart)</td></tr>';
-      }
-
-      // Recent subrequests
-      var recentTable = document.getElementById('recentSubrequestsTable');
-      var recentLogs = tracking.recentLogs || [];
-      if (recentLogs.length > 0) {
-        recentTable.innerHTML = recentLogs.slice(0, 20).map(function(log) {
-          var statusClass = log.status >= 200 && log.status < 300 ? 'success' : (log.status >= 400 ? 'error' : 'warning');
-          return '<tr><td class="mono">' + formatTime(log.timestamp) + '</td><td class="mono">' + log.endpoint + '</td><td class="mono">' + log.target + '</td><td>' + log.method + '</td><td><span class="badge ' + statusClass + '">' + log.status + '</span></td><td class="mono">' + log.duration + ' ms</td></tr>';
-        }).join('');
-      } else {
-        recentTable.innerHTML = '<tr><td colspan="6" class="empty-state">No recent subrequests (resets on worker restart)</td></tr>';
       }
     }
 

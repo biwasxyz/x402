@@ -15,7 +15,7 @@ import {
  * Returns daily trading metrics including volume, trader counts, and pool activity.
  */
 export async function getMarketStats(): Promise<MarketStatsDay[]> {
-  return teneroFetch<MarketStatsDay[]>("/market/stats");
+  return teneroFetch<MarketStatsDay[]>("/market/stats", "stacks", "/api/market/stats");
 }
 
 /**
@@ -23,7 +23,7 @@ export async function getMarketStats(): Promise<MarketStatsDay[]> {
  * @param limit Maximum number of tokens to return (default 10)
  */
 export async function getTopGainers(limit: number = 10): Promise<TokenData[]> {
-  return teneroFetch<TokenData[]>(`/market/top_gainers?limit=${limit}`);
+  return teneroFetch<TokenData[]>(`/market/top_gainers?limit=${limit}`, "stacks", "/api/market/gainers");
 }
 
 /**
@@ -31,7 +31,7 @@ export async function getTopGainers(limit: number = 10): Promise<TokenData[]> {
  * @param limit Maximum number of tokens to return (default 10)
  */
 export async function getTopLosers(limit: number = 10): Promise<TokenData[]> {
-  return teneroFetch<TokenData[]>(`/market/top_losers?limit=${limit}`);
+  return teneroFetch<TokenData[]>(`/market/top_losers?limit=${limit}`, "stacks", "/api/market/losers");
 }
 
 /**
@@ -40,7 +40,9 @@ export async function getTopLosers(limit: number = 10): Promise<TokenData[]> {
  */
 export async function getWhaleTrades(limit: number = 20): Promise<WhaleTrade[]> {
   const response = await teneroFetch<WhaleTradesResponse>(
-    `/market/whale_trades?limit=${limit}`
+    `/market/whale_trades?limit=${limit}`,
+    "stacks",
+    "/api/market/whales"
   );
   return response.rows || [];
 }
@@ -49,5 +51,5 @@ export async function getWhaleTrades(limit: number = 20): Promise<WhaleTrade[]> 
  * Get hourly net flow of funds in/out of the market.
  */
 export async function getHourlyNetflow(): Promise<HourlyNetflow[]> {
-  return teneroFetch<HourlyNetflow[]>("/market/hourly_netflow");
+  return teneroFetch<HourlyNetflow[]>("/market/hourly_netflow", "stacks", "/api/market/netflow");
 }

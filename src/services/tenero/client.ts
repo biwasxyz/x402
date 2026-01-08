@@ -1,4 +1,5 @@
 // Tenero API client for Stacks DeFi market data
+import { trackedFetch } from "../analytics.service";
 
 const TENERO_BASE_URL = "https://api.tenero.io";
 const DEFAULT_CHAIN = "stacks";
@@ -22,12 +23,13 @@ interface TeneroResponse<T> {
 
 export async function teneroFetch<T>(
   path: string,
-  chain: string = DEFAULT_CHAIN
+  chain: string = DEFAULT_CHAIN,
+  callerEndpoint: string = "/api/tenero"
 ): Promise<T> {
   const url = `${TENERO_BASE_URL}/v1/${chain}${path}`;
   console.log(`[tenero] Fetching: ${url}`);
 
-  const response = await fetch(url);
+  const response = await trackedFetch(callerEndpoint, url);
 
   if (!response.ok) {
     throw new TeneroApiError(

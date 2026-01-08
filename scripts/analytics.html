@@ -259,9 +259,9 @@
         <select id="timeRange">
           <option value="1">Last 1 hour</option>
           <option value="6">Last 6 hours</option>
-          <option value="24" selected>Last 24 hours</option>
+          <option value="24">Last 24 hours</option>
           <option value="72">Last 3 days</option>
-          <option value="168">Last 7 days</option>
+          <option value="168" selected>Last 7 days</option>
           <option value="720">Last 30 days</option>
         </select>
         <button id="refreshBtn" onclick="fetchAnalytics()">Refresh</button>
@@ -337,6 +337,27 @@
           </thead>
           <tbody id="statusTable">
             <tr><td colspan="5" class="empty-state">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Subrequest Origins (like Cloudflare dashboard) -->
+      <div class="section">
+        <h2>Subrequest Origins</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Origin</th>
+              <th>Requests</th>
+              <th>2xx</th>
+              <th>4xx</th>
+              <th>5xx</th>
+              <th>Avg Response</th>
+              <th>Cache Rate</th>
+            </tr>
+          </thead>
+          <tbody id="originsTable">
+            <tr><td colspan="7" class="empty-state">Loading...</td></tr>
           </tbody>
         </table>
       </div>
@@ -507,8 +528,25 @@
         }
       `;
 
+      const originsQuery = `
+        query GetSubrequestOrigins($accountTag: String!, $datetimeStart: Time!, $datetimeEnd: Time!, $scriptName: String!) {
+          viewer {
+            accounts(filter: { accountTag: $accountTag }) {
+              workersSubrequestsAdaptiveGroups(
+                filter: { scriptName: $scriptName datetime_geq: $datetimeStart datetime_leq: $datetimeEnd }
+                limit: 100
+                orderBy: [sum_subrequests_DESC]
+              ) {
+                sum { subrequests timeToResponseUs }
+                dimensions { hostname httpResponseStatus cacheStatus }
+              }
+            }
+          }
+        }
+      `;
+
       try {
-        const [mainRes, statusRes, hourlyRes] = await Promise.all([
+        const [mainRes, statusRes, hourlyRes, originsRes] = await Promise.all([
           fetch(GRAPHQL_ENDPOINT, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -523,10 +561,15 @@
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ query: hourlyQuery, variables })
+          }),
+          fetch(GRAPHQL_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: originsQuery, variables })
           })
         ]);
 
-        const [mainData, statusData, hourlyData] = await Promise.all([mainRes.json(), statusRes.json(), hourlyRes.json()]);
+        const [mainData, statusData, hourlyData, originsData] = await Promise.all([mainRes.json(), statusRes.json(), hourlyRes.json(), originsRes.json()]);
 
         if (mainData.errors?.some(e => e.message.includes('authentication'))) {
           localStorage.removeItem('cf_api_token');
@@ -548,7 +591,7 @@
         if (mainMetrics.length === 0) {
           showError('No metrics data available for the specified time range. The worker may have no traffic.');
           setStatus('', 'No data');
-          // Clear the cards
+          // Clear all tables
           document.getElementById('totalRequests').textContent = '0';
           document.getElementById('totalErrors').textContent = '0';
           document.getElementById('successRate').textContent = '-';
@@ -557,6 +600,7 @@
           document.getElementById('cpuTimeP99').textContent = '-';
           document.getElementById('statusTable').innerHTML = '<tr><td colspan="5" class="empty-state">No data</td></tr>';
           document.getElementById('hourlyTable').innerHTML = '<tr><td colspan="6" class="empty-state">No data</td></tr>';
+          document.getElementById('originsTable').innerHTML = '<tr><td colspan="7" class="empty-state">No data</td></tr>';
           return;
         }
 
@@ -630,6 +674,62 @@
           }).join('');
         } else {
           hourlyTbody.innerHTML = '<tr><td colspan="6" class="empty-state">No hourly data</td></tr>';
+        }
+
+        // Subrequest origins (like Cloudflare dashboard)
+        const originsTbody = document.getElementById('originsTable');
+        let originsMetrics = [];
+
+        if (originsData.errors) {
+          console.warn('Origins query error:', originsData.errors);
+          originsTbody.innerHTML = '<tr><td colspan="7" class="empty-state">Failed to load origins data</td></tr>';
+        } else {
+          originsMetrics = originsData.data?.viewer?.accounts?.[0]?.workersSubrequestsAdaptiveGroups || [];
+        }
+
+        if (originsMetrics.length > 0) {
+          // Aggregate by hostname
+          const byHostname = {};
+          for (const m of originsMetrics) {
+            const hostname = m.dimensions?.hostname || 'unknown';
+            const status = m.dimensions?.httpResponseStatus || 0;
+            const count = m.sum?.subrequests || 0;
+            const responseTime = m.sum?.timeToResponseUs || 0;
+            const isCached = m.dimensions?.cacheStatus === 1;
+
+            if (!byHostname[hostname]) {
+              byHostname[hostname] = { requests: 0, status2xx: 0, status4xx: 0, status5xx: 0, totalResponseTime: 0, cached: 0 };
+            }
+            byHostname[hostname].requests += count;
+            byHostname[hostname].totalResponseTime += responseTime;
+            if (status >= 200 && status < 300) byHostname[hostname].status2xx += count;
+            else if (status >= 400 && status < 500) byHostname[hostname].status4xx += count;
+            else if (status >= 500) byHostname[hostname].status5xx += count;
+            if (isCached) byHostname[hostname].cached += count;
+          }
+
+          const origins = Object.entries(byHostname)
+            .map(([hostname, data]) => ({
+              hostname,
+              ...data,
+              avgResponseTime: data.requests > 0 ? data.totalResponseTime / data.requests : 0,
+              cacheRate: data.requests > 0 ? ((data.cached / data.requests) * 100).toFixed(0) + '%' : '0%'
+            }))
+            .sort((a, b) => b.requests - a.requests);
+
+          originsTbody.innerHTML = origins.map(o => `
+            <tr>
+              <td class="mono">${o.hostname}</td>
+              <td class="mono">${formatNumber(o.requests)}</td>
+              <td class="mono" style="color: var(--accent-green);">${formatNumber(o.status2xx)}</td>
+              <td class="mono" style="color: var(--accent-yellow);">${formatNumber(o.status4xx)}</td>
+              <td class="mono" style="color: var(--accent-red);">${formatNumber(o.status5xx)}</td>
+              <td class="mono">${formatDuration(o.avgResponseTime)}</td>
+              <td class="mono">${o.cacheRate}</td>
+            </tr>
+          `).join('');
+        } else {
+          originsTbody.innerHTML = '<tr><td colspan="7" class="empty-state">No subrequest data</td></tr>';
         }
 
         setStatus('', 'Updated');

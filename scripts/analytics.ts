@@ -201,8 +201,8 @@ async function fetchAndDisplayAnalytics(): Promise<void> {
   const now = new Date();
   const datetimeEnd = now.toISOString();
 
-  // Default to last 24 hours
-  const hoursBack = parseInt(process.argv[2] || "24", 10);
+  // Default to last 7 days
+  const hoursBack = parseInt(process.argv[2] || "168", 10);
   const datetimeStart = new Date(
     now.getTime() - hoursBack * 60 * 60 * 1000
   ).toISOString();
@@ -384,7 +384,7 @@ async function fetchAndDisplayAnalytics(): Promise<void> {
     );
     console.log(`${"=".repeat(80)}`);
     console.log("\nUsage:");
-    console.log("  bun run scripts/analytics.ts [hours]  - Query last N hours (default: 24)");
+    console.log("  bun run scripts/analytics.ts [hours]  - Query last N hours (default: 168)");
     console.log("  bun run scripts/analytics.ts 168      - Query last 7 days");
     console.log("  bun run scripts/analytics.ts --json   - Include raw JSON output");
     console.log("  npm run analytics:ui                  - Open HTML dashboard");

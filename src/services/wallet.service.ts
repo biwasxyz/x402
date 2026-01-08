@@ -1,3 +1,4 @@
+import { trackedFetch } from "./analytics.service";
 import { getOpenRouter } from "./openrouter.service";
 
 export type WalletClassification = "trader" | "dao" | "bridge" | "bot" | "whale";
@@ -55,7 +56,7 @@ interface HiroBalances {
 async function getWalletTransactions(address: string, stacksApiUrl: string): Promise<HiroTransaction[]> {
   const url = `${stacksApiUrl}/extended/v1/address/${address}/transactions?limit=50`;
 
-  const response = await fetch(url);
+  const response = await trackedFetch("/api/wallet/classify", url);
   if (response.status === 404) {
     return [];
   }
@@ -72,7 +73,7 @@ async function getWalletTransactions(address: string, stacksApiUrl: string): Pro
 async function getWalletBalances(address: string, stacksApiUrl: string): Promise<HiroBalances> {
   const url = `${stacksApiUrl}/extended/v1/address/${address}/balances`;
 
-  const response = await fetch(url);
+  const response = await trackedFetch("/api/wallet/classify", url);
   if (!response.ok) {
     throw new Error(`Failed to fetch balances: ${response.statusText}`);
   }

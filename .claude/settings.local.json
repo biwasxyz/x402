@@ -7,7 +7,11 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "WebFetch(domain:developers.cloudflare.com)",
-      "Bash(CLOUDFLARE_API_TOKEN=ti2xxIg2myStIqd5bK3OUOb7Ah_WUugpBG4tlEoR bun run:*)"
+      "Bash(CLOUDFLARE_API_TOKEN=ti2xxIg2myStIqd5bK3OUOb7Ah_WUugpBG4tlEoR bun run:*)",
+      "WebSearch",
+      "WebFetch(domain:pages.johnspurlock.com)",
+      "WebFetch(domain:cfdata.lol)",
+      "Bash(bun run:*)"
     ]
   }
 }

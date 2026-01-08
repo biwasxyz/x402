@@ -1,4 +1,5 @@
 import { RuntimeConfig } from "../config";
+import { trackedFetch } from "../services/analytics.service";
 import { x402PaymentRequired, EndpointConfig, TokenType, SettlementInfo } from "../types";
 import { jsonResponse, sendError } from "./response";
 
@@ -187,7 +188,7 @@ async function settleSignedPayment(
 
   console.log("x402 settle request payload", settlePayload);
 
-  const response = await fetch(`${config.facilitatorUrl}/api/v1/settle`, {
+  const response = await trackedFetch(options.resource, `${config.facilitatorUrl}/api/v1/settle`, {
     method: "POST",
     headers: {
       "content-type": "application/json",

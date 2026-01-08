@@ -1,0 +1,1 @@
+{"endpoints":{"GET /api/news":{"count":2,"errors":1,"totalDuration":20602,"lastAccess":"2026-01-08T14:47:16.349Z"},"GET /analytics":{"count":1,"errors":0,"totalDuration":1,"lastAccess":"2026-01-08T14:47:03.049Z"}},"updatedAt":"2026-01-08T14:47:16.349Z"}

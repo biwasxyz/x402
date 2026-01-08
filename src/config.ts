@@ -6,6 +6,7 @@ export interface EnvBindings {
   NETWORK?: string;
   FACILITATOR_URL?: string;
   CLOUDFLARE_API_TOKEN?: string;
+  ANALYTICS?: KVNamespace;
 }
 
 export interface RuntimeConfig {

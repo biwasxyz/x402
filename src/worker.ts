@@ -21,11 +21,11 @@ import { getTrendingPools, getPoolOhlc } from "./services/tenero-pools.service";
 import { getTokenSummary, getTokenDetails } from "./services/tenero-tokens.service";
 import { TrendingTimeframe } from "./services/tenero/types";
 import { analyzeWalletTrading, analyzeWalletPnl } from "./services/tenero-wallets.service";
-import { getWorkerAnalytics, getSubrequestStats } from "./services/analytics.service";
+import { getWorkerAnalytics, getSubrequestStats, trackEndpointKV, getEndpointStatsKV } from "./services/analytics.service";
 import { ANALYTICS_HTML } from "./analytics-page";
 
 
-type Env = EnvBindings & Record<string, string | undefined>;
+type Env = EnvBindings & Record<string, string | KVNamespace | undefined>;
 
 const OPENROUTER_ENDPOINTS = new Set([
   "/api/news",
@@ -149,13 +149,14 @@ const ENDPOINTS: Record<string, EndpointConfig> = {
 };
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const startTime = Date.now();
     const url = new URL(request.url);
     const method = request.method.toUpperCase();
 
     console.log(`[${new Date().toISOString()}] ${method} ${url.pathname}`);
 
-    // CORS preflight
+    // CORS preflight (don't track)
     if (method === "OPTIONS") {
       return new Response(null, {
         status: 204,
@@ -167,6 +168,33 @@ export default {
         },
       });
     }
+
+    // Execute request and track endpoint
+    let response: Response;
+    try {
+      response = await handleRequest(request, env, url, method);
+    } catch (error) {
+      console.error("Request error:", error);
+      response = sendError(
+        error instanceof Error ? error.message : "Internal server error",
+        500,
+        "INTERNAL_ERROR"
+      );
+    }
+
+    // Track endpoint to KV (skip /health and /api/analytics to avoid noise)
+    // Use waitUntil to ensure KV write completes after response is sent
+    if (url.pathname !== "/health" && url.pathname !== "/api/analytics") {
+      ctx.waitUntil(
+        trackEndpointKV(env.ANALYTICS, url.pathname, method, response.status, Date.now() - startTime)
+      );
+    }
+
+    return response;
+  },
+};
+
+async function handleRequest(request: Request, env: Env, url: URL, method: string): Promise<Response> {
 
     // Health check (free)
     if (method === "GET" && url.pathname === "/health") {
@@ -187,18 +215,20 @@ export default {
 
     // Analytics API endpoint (free, public)
     if (method === "GET" && url.pathname === "/api/analytics") {
-      const hours = parseInt(url.searchParams.get("hours") || "24", 10);
+      const hours = parseInt(url.searchParams.get("hours") || "168", 10);
       const validHours = Math.min(Math.max(hours, 1), 720); // 1 hour to 30 days
 
       if (!env.CLOUDFLARE_API_TOKEN) {
+        // Return endpoint stats even without CF API token
+        const endpointStats = await getEndpointStatsKV(env.ANALYTICS);
         return jsonResponse({
           success: false,
           error: "CLOUDFLARE_API_TOKEN not configured",
-          subrequestTracking: getSubrequestStats(),
+          endpointStats,
         });
       }
 
-      const analytics = await getWorkerAnalytics(env.CLOUDFLARE_API_TOKEN, validHours);
+      const analytics = await getWorkerAnalytics(env.CLOUDFLARE_API_TOKEN, validHours, env.ANALYTICS);
       return jsonResponse(analytics);
     }
 
@@ -316,8 +346,7 @@ export default {
     }
 
     return sendError("Not Found", 404, "NOT_FOUND");
-  },
-};
+}
 
 async function handleNews(request: Request, config: RuntimeConfig): Promise<Response> {
   const endpointConfig = ENDPOINTS["/api/news"];

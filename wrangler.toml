@@ -12,6 +12,12 @@ NETWORK = "testnet"
 SERVER_ADDRESS = "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM"
 FACILITATOR_URL = "https://facilitator.x402stacks.xyz"
 
+# KV namespace for endpoint analytics (persistent tracking)
+# Create with: wrangler kv:namespace create "ANALYTICS"
+[[kv_namespaces]]
+binding = "ANALYTICS"
+id = "f0207c8e59e440258f75a51be1a18ab7"
+
 # Set secrets:
 # wrangler secret put OPENROUTER_API_KEY
 # wrangler secret put CLOUDFLARE_API_TOKEN  (for /analytics dashboard)
