@@ -1,4 +1,5 @@
 // Tenero Market Service - Market stats, gainers/losers, whales, netflow
+// Free service: public Tenero API, no x402 payment required.
 
 import { teneroFetch } from "./tenero/client";
 import {

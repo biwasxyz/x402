@@ -1,4 +1,5 @@
 // Tenero Tokens Service - Token market summary and profile
+// Free service: public Tenero API, no x402 payment required.
 
 import { teneroFetch } from "./tenero/client";
 import { TokenMarketSummary, TokenProfile, TokenData } from "./tenero/types";

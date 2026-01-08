@@ -1,4 +1,5 @@
 // Tenero Pools Service - Trending pools and OHLC data
+// Free service: public Tenero API, no x402 payment required.
 
 import { teneroFetch } from "./tenero/client";
 import { TrendingPool, PoolOhlc, TrendingTimeframe, OhlcParams } from "./tenero/types";
