@@ -29,7 +29,7 @@ Use the local knowledge base for Stacks/Clarity and protocol guidance: `/Users/b
 Fast lookups for common facts and gotchas:
 - `nuggets/stacks.md` - Tenero API, SIWS, SIP-018 signing standards quick reference.
 - `nuggets/clarity.md` - Core principles, gotchas, error handling, testing commands.
-- `nuggets/cloudflare.md` - Worker deployment best practices.
+- `nuggets/cloudflare.md` - Worker deployment best practices (prefer CI/CD over direct deploy).
 - `nuggets/node.md` - Node.js and TypeScript tooling tips.
 - `nuggets/github.md` - GitHub API, Actions, and Pages workflows.
 - `nuggets/git.md` - Git workflow tips and commands.
@@ -45,17 +45,20 @@ Comprehensive documentation for detailed guidance:
 Reusable code patterns and architectural guidance:
 - `patterns/clarity-patterns.md` - Comprehensive Clarity code patterns (public functions, events, error handling, bit flags, multi-send, whitelisting, DAO proposals, fixed-point math, treasury patterns).
 - `patterns/clarity-testing.md` - Testing tooling and patterns for Clarity contracts.
+- `patterns/skill-organization.md` - Three-layer pattern (SKILL → RUNBOOK → HELPERS) for maintainable workflows.
 
 ### Architectural Decisions
 Design principles and workflow patterns:
-- `decisions/0002-clarity-design-principles.md` - Contract design rules and security patterns.
+- `decisions/0002-clarity-design-principles.md` - Contract design rules, security patterns, Clarity 4 features.
 - `decisions/0001-workflow-component-design.md` - Development workflow component patterns (OODA loop, planning flows, composable workflows).
 
 ### Runbooks
 Step-by-step operational guides:
 - `runbook/clarity-development.md` - Clarity dev workflows and checklists.
+- `runbook/cloudflare-scaffold.md` - Cloudflare Worker setup, wrangler config, credentials, deployment patterns.
 - `runbook/setup-github-pat.md` - GitHub Personal Access Token setup.
 - `runbook/setup-github-pages-just-the-docs.md` - Documentation site deployment.
+- `runbook/updating-claude-knowledge.md` - Knowledge base maintenance and sanitization guidelines.
 
 ## Claude Workflow Hooks
 The knowledge base supports composable workflow commands and skills:
@@ -67,19 +70,29 @@ The knowledge base supports composable workflow commands and skills:
 
 ### Commands (User-Initiated)
 - `/sync` - Pull latest from repositories.
-- `/gather` - Pull relevant context before work.
-- `/plan` - Spawn Plan agent for implementation strategy.
+- `/gather [topic]` - Pull relevant context before work.
+- `/plan <task>` - Spawn Plan agent for implementation strategy.
 - `/report` - Generate session summaries.
 - `/status` - Quick status check of current state.
 - `/build` - Run build pipeline.
 - `/pr` - Create/manage pull request.
 - `/preview` - Deploy to preview environment.
 - `/ship` - Production deployment (requires confirmation).
+- `/daily [date]` - Generate daily work summaries.
+- `/learn <category>: <fact>` - Capture knowledge nuggets (clarity, stacks, cloudflare, git, github, node).
 
 ### Skills (Proactive)
 - `reflect` - Review and suggest workflow improvements.
 - `/execute` - Orchestrate build/test during coding (proactive).
 - `/pick_whoabuddy_brain` - Sync and apply latest claude-knowledge updates.
+- `/daily` - Generate daily work summaries from git history.
+
+### Specialized Agents
+Reusable expert agents available in `claude-config/agents/`:
+- `stacks-blockchain-expert.md` - Stacks.js, deployment, Clarinet workflows.
+- `clarity-code-expert.md` - Clarity smart contracts, auditing, testing.
+- `git-expert.md` - Git workflows and conflict resolution.
+- `github-expert.md` - GitHub CLI, issues, PRs, Actions.
 
 ### Composable Workflows
 **Planning Session**: `/sync` → `/gather` → `/plan` → [work] → `/report` → `reflect`
