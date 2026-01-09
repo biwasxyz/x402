@@ -174,7 +174,7 @@ export async function analyzePoolRisk(request: PoolRiskRequest): Promise<PoolRis
 
   // Fetch pools
   const pools = await fetchAlexPools("/api/alex/pool-risk");
-  const pool = pools.find((p) => p.pool_address === poolId);
+  const pool = pools.find((p) => p.pool_id === poolId || p.pool_address === poolId);
 
   if (!pool) {
     throw new Error(`Pool not found: ${poolId}`);
@@ -392,7 +392,7 @@ function calculatePoolRiskMetrics(pool: AlexPoolData, investment: number): PoolR
   };
 }
 
-function findArbitrageOpportunities(pools: AlexPoolData[], prices: Map<string, number>): ArbitrageOpportunity[] {
+function findArbitrageOpportunities(pools: AlexPoolData[], _prices: Map<string, number>): ArbitrageOpportunity[] {
   const opportunities: ArbitrageOpportunity[] = [];
 
   // Group pools by token pairs
