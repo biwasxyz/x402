@@ -23,6 +23,24 @@ import { TrendingTimeframe } from "./services/tenero/types";
 import { analyzeWalletTrading, analyzeWalletPnl } from "./services/tenero-wallets.service";
 import { getWorkerAnalytics, getSubrequestStats, trackEndpointKV, getEndpointStatsKV } from "./services/analytics.service";
 import { ANALYTICS_HTML } from "./analytics-page";
+// Alex Lab services
+import {
+  optimizeSwap,
+  analyzePoolRisk,
+  scanArbitrage,
+  detectMarketRegime,
+} from "./services/alex.service";
+import { AlexApiError } from "./services/alex/client";
+// Zest Protocol services
+import {
+  analyzeLiquidationRisk,
+  optimizeYield,
+  forecastInterestRates,
+  analyzePositionHealth,
+} from "./services/zest.service";
+import { ZestApiError } from "./services/zest/client";
+// Cross-protocol DeFi services
+import { analyzePortfolio, buildStrategy } from "./services/defi.service";
 
 
 type Env = EnvBindings & Record<string, string | KVNamespace | undefined>;
@@ -35,6 +53,19 @@ const OPENROUTER_ENDPOINTS = new Set([
   "/api/sentiment",
   "/api/wallet/trading",
   "/api/wallet/pnl",
+  // Alex Lab endpoints
+  "/api/alex/swap-optimizer",
+  "/api/alex/pool-risk",
+  "/api/alex/arbitrage-scan",
+  "/api/alex/market-regime",
+  // Zest Protocol endpoints
+  "/api/zest/liquidation-risk",
+  "/api/zest/yield-optimizer",
+  "/api/zest/interest-forecast",
+  "/api/zest/position-health",
+  // Cross-protocol DeFi endpoints
+  "/api/defi/portfolio-analyzer",
+  "/api/defi/strategy-builder",
 ]);
 
 // x402-stacks Endpoint Configurations (prices in token units)
@@ -145,6 +176,79 @@ const ENDPOINTS: Record<string, EndpointConfig> = {
     method: "POST",
     paymentRequired: true,
     amount: 0.005,
+  },
+  // Alex Lab DEX Endpoints
+  "/api/alex/swap-optimizer": {
+    resource: "/api/alex/swap-optimizer",
+    description: "AI swap route optimizer - finds optimal routes, calculates slippage, recommends execution strategy",
+    method: "POST",
+    paymentRequired: true,
+    amount: 0.005,
+  },
+  "/api/alex/pool-risk": {
+    resource: "/api/alex/pool-risk",
+    description: "LP position risk analyzer - impermanent loss scenarios, pool sustainability assessment",
+    method: "POST",
+    paymentRequired: true,
+    amount: 0.008,
+  },
+  "/api/alex/arbitrage-scan": {
+    resource: "/api/alex/arbitrage-scan",
+    description: "Cross-pool arbitrage scanner - finds price discrepancies, calculates profitable paths",
+    method: "GET",
+    paymentRequired: true,
+    amount: 0.01,
+  },
+  "/api/alex/market-regime": {
+    resource: "/api/alex/market-regime",
+    description: "Market regime detector - classifies current market conditions (trending, ranging, volatile)",
+    method: "GET",
+    paymentRequired: true,
+    amount: 0.005,
+  },
+  // Zest Protocol Lending Endpoints
+  "/api/zest/liquidation-risk": {
+    resource: "/api/zest/liquidation-risk",
+    description: "Liquidation risk monitor - health factor analysis, price scenario simulation, liquidation probability",
+    method: "POST",
+    paymentRequired: true,
+    amount: 0.008,
+  },
+  "/api/zest/yield-optimizer": {
+    resource: "/api/zest/yield-optimizer",
+    description: "Lending yield optimizer - analyzes all markets, recommends optimal supply/borrow strategy",
+    method: "POST",
+    paymentRequired: true,
+    amount: 0.008,
+  },
+  "/api/zest/interest-forecast": {
+    resource: "/api/zest/interest-forecast",
+    description: "Interest rate forecaster - predicts rate movements based on utilization trends",
+    method: "GET",
+    paymentRequired: true,
+    amount: 0.005,
+  },
+  "/api/zest/position-health": {
+    resource: "/api/zest/position-health",
+    description: "Position health analyzer - comprehensive health check with AI rebalancing recommendations",
+    method: "POST",
+    paymentRequired: true,
+    amount: 0.005,
+  },
+  // Cross-Protocol DeFi Intelligence
+  "/api/defi/portfolio-analyzer": {
+    resource: "/api/defi/portfolio-analyzer",
+    description: "DeFi portfolio intelligence - analyzes combined Alex LP + Zest positions, risk assessment, optimization",
+    method: "POST",
+    paymentRequired: true,
+    amount: 0.015,
+  },
+  "/api/defi/strategy-builder": {
+    resource: "/api/defi/strategy-builder",
+    description: "AI strategy builder - generates complete DeFi strategy across Alex and Zest with execution plan",
+    method: "POST",
+    paymentRequired: true,
+    amount: 0.02,
   },
 };
 
@@ -343,6 +447,49 @@ async function handleRequest(request: Request, env: Env, url: URL, method: strin
 
     if (method === "POST" && url.pathname === "/api/wallet/pnl") {
       return handleWalletPnl(request, config);
+    }
+
+    // Alex Lab DEX Endpoints
+    if (method === "POST" && url.pathname === "/api/alex/swap-optimizer") {
+      return handleAlexSwapOptimizer(request, config);
+    }
+
+    if (method === "POST" && url.pathname === "/api/alex/pool-risk") {
+      return handleAlexPoolRisk(request, config);
+    }
+
+    if (method === "GET" && url.pathname === "/api/alex/arbitrage-scan") {
+      return handleAlexArbitrageScan(request, config);
+    }
+
+    if (method === "GET" && url.pathname === "/api/alex/market-regime") {
+      return handleAlexMarketRegime(request, config);
+    }
+
+    // Zest Protocol Lending Endpoints
+    if (method === "POST" && url.pathname === "/api/zest/liquidation-risk") {
+      return handleZestLiquidationRisk(request, config);
+    }
+
+    if (method === "POST" && url.pathname === "/api/zest/yield-optimizer") {
+      return handleZestYieldOptimizer(request, config);
+    }
+
+    if (method === "GET" && url.pathname === "/api/zest/interest-forecast") {
+      return handleZestInterestForecast(request, config);
+    }
+
+    if (method === "POST" && url.pathname === "/api/zest/position-health") {
+      return handleZestPositionHealth(request, config);
+    }
+
+    // Cross-Protocol DeFi Intelligence
+    if (method === "POST" && url.pathname === "/api/defi/portfolio-analyzer") {
+      return handleDefiPortfolioAnalyzer(request, config);
+    }
+
+    if (method === "POST" && url.pathname === "/api/defi/strategy-builder") {
+      return handleDefiStrategyBuilder(request, config);
     }
 
     return sendError("Not Found", 404, "NOT_FOUND");
@@ -775,6 +922,413 @@ async function handleWalletPnl(request: Request, config: RuntimeConfig): Promise
       error instanceof Error ? error.message : "Failed to analyze wallet PnL",
       500,
       "WALLET_PNL_ERROR"
+    );
+  }
+}
+
+// Alex Lab DEX Handlers
+
+async function handleAlexSwapOptimizer(request: Request, config: RuntimeConfig): Promise<Response> {
+  const endpointConfig = ENDPOINTS["/api/alex/swap-optimizer"];
+  const body = await parseJsonBody(request);
+
+  if (body.error) {
+    return body.error;
+  }
+
+  try {
+    const paymentResult = await requirePayment(request, config, endpointConfig);
+    if (!paymentResult.ok) {
+      return (paymentResult as PaymentFailure).response;
+    }
+
+    const { tokenIn, tokenOut, amountIn } = body.data as {
+      tokenIn?: string;
+      tokenOut?: string;
+      amountIn?: number;
+    };
+
+    if (!tokenIn || !tokenOut || !amountIn) {
+      return sendError("tokenIn, tokenOut, and amountIn are required", 400, "MISSING_FIELD");
+    }
+
+    const result = await optimizeSwap({ tokenIn, tokenOut, amountIn });
+    return sendSuccess(result, 200, paymentResult.settlement);
+  } catch (error) {
+    console.error("Alex swap optimizer error:", error);
+    if (error instanceof AlexApiError) {
+      return sendError(`Alex API unavailable: ${error.message}`, 502, "ALEX_API_ERROR");
+    }
+    return sendError(
+      error instanceof Error ? error.message : "Failed to optimize swap",
+      500,
+      "SWAP_OPTIMIZER_ERROR"
+    );
+  }
+}
+
+async function handleAlexPoolRisk(request: Request, config: RuntimeConfig): Promise<Response> {
+  const endpointConfig = ENDPOINTS["/api/alex/pool-risk"];
+  const body = await parseJsonBody(request);
+
+  if (body.error) {
+    return body.error;
+  }
+
+  try {
+    const paymentResult = await requirePayment(request, config, endpointConfig);
+    if (!paymentResult.ok) {
+      return (paymentResult as PaymentFailure).response;
+    }
+
+    const { poolId, investmentAmount } = body.data as {
+      poolId?: string;
+      investmentAmount?: number;
+    };
+
+    if (!poolId) {
+      return sendError("poolId is required", 400, "MISSING_FIELD");
+    }
+
+    const result = await analyzePoolRisk({ poolId, investmentAmount });
+    return sendSuccess(result, 200, paymentResult.settlement);
+  } catch (error) {
+    console.error("Alex pool risk error:", error);
+    if (error instanceof AlexApiError) {
+      return sendError(`Alex API unavailable: ${error.message}`, 502, "ALEX_API_ERROR");
+    }
+    return sendError(
+      error instanceof Error ? error.message : "Failed to analyze pool risk",
+      500,
+      "POOL_RISK_ERROR"
+    );
+  }
+}
+
+async function handleAlexArbitrageScan(request: Request, config: RuntimeConfig): Promise<Response> {
+  const endpointConfig = ENDPOINTS["/api/alex/arbitrage-scan"];
+
+  try {
+    const paymentResult = await requirePayment(request, config, endpointConfig);
+    if (!paymentResult.ok) {
+      return (paymentResult as PaymentFailure).response;
+    }
+
+    const result = await scanArbitrage();
+    return sendSuccess(result, 200, paymentResult.settlement);
+  } catch (error) {
+    console.error("Alex arbitrage scan error:", error);
+    if (error instanceof AlexApiError) {
+      return sendError(`Alex API unavailable: ${error.message}`, 502, "ALEX_API_ERROR");
+    }
+    return sendError(
+      error instanceof Error ? error.message : "Failed to scan arbitrage",
+      500,
+      "ARBITRAGE_SCAN_ERROR"
+    );
+  }
+}
+
+async function handleAlexMarketRegime(request: Request, config: RuntimeConfig): Promise<Response> {
+  const endpointConfig = ENDPOINTS["/api/alex/market-regime"];
+
+  try {
+    const paymentResult = await requirePayment(request, config, endpointConfig);
+    if (!paymentResult.ok) {
+      return (paymentResult as PaymentFailure).response;
+    }
+
+    const result = await detectMarketRegime();
+    return sendSuccess(result, 200, paymentResult.settlement);
+  } catch (error) {
+    console.error("Alex market regime error:", error);
+    if (error instanceof AlexApiError) {
+      return sendError(`Alex API unavailable: ${error.message}`, 502, "ALEX_API_ERROR");
+    }
+    return sendError(
+      error instanceof Error ? error.message : "Failed to detect market regime",
+      500,
+      "MARKET_REGIME_ERROR"
+    );
+  }
+}
+
+// Zest Protocol Lending Handlers
+
+async function handleZestLiquidationRisk(request: Request, config: RuntimeConfig): Promise<Response> {
+  const endpointConfig = ENDPOINTS["/api/zest/liquidation-risk"];
+  const body = await parseJsonBody(request);
+
+  if (body.error) {
+    return body.error;
+  }
+
+  try {
+    const paymentResult = await requirePayment(request, config, endpointConfig);
+    if (!paymentResult.ok) {
+      return (paymentResult as PaymentFailure).response;
+    }
+
+    const { address, collateralAsset, collateralAmount, debtAsset, debtAmount } = body.data as {
+      address?: string;
+      collateralAsset?: string;
+      collateralAmount?: number;
+      debtAsset?: string;
+      debtAmount?: number;
+    };
+
+    if (!address || !collateralAsset || !collateralAmount || !debtAsset || !debtAmount) {
+      return sendError(
+        "address, collateralAsset, collateralAmount, debtAsset, and debtAmount are required",
+        400,
+        "MISSING_FIELD"
+      );
+    }
+
+    const result = await analyzeLiquidationRisk({
+      address,
+      collateralAsset,
+      collateralAmount,
+      debtAsset,
+      debtAmount,
+    });
+    return sendSuccess(result, 200, paymentResult.settlement);
+  } catch (error) {
+    console.error("Zest liquidation risk error:", error);
+    if (error instanceof ZestApiError) {
+      return sendError(`Zest API unavailable: ${error.message}`, 502, "ZEST_API_ERROR");
+    }
+    return sendError(
+      error instanceof Error ? error.message : "Failed to analyze liquidation risk",
+      500,
+      "LIQUIDATION_RISK_ERROR"
+    );
+  }
+}
+
+async function handleZestYieldOptimizer(request: Request, config: RuntimeConfig): Promise<Response> {
+  const endpointConfig = ENDPOINTS["/api/zest/yield-optimizer"];
+  const body = await parseJsonBody(request);
+
+  if (body.error) {
+    return body.error;
+  }
+
+  try {
+    const paymentResult = await requirePayment(request, config, endpointConfig);
+    if (!paymentResult.ok) {
+      return (paymentResult as PaymentFailure).response;
+    }
+
+    const { capitalUsd, riskTolerance, preferredAssets } = body.data as {
+      capitalUsd?: number;
+      riskTolerance?: "conservative" | "moderate" | "aggressive";
+      preferredAssets?: string[];
+    };
+
+    if (!capitalUsd || !riskTolerance) {
+      return sendError("capitalUsd and riskTolerance are required", 400, "MISSING_FIELD");
+    }
+
+    const validTolerances = ["conservative", "moderate", "aggressive"];
+    if (!validTolerances.includes(riskTolerance)) {
+      return sendError(
+        "riskTolerance must be conservative, moderate, or aggressive",
+        400,
+        "INVALID_FIELD"
+      );
+    }
+
+    const result = await optimizeYield({ capitalUsd, riskTolerance, preferredAssets });
+    return sendSuccess(result, 200, paymentResult.settlement);
+  } catch (error) {
+    console.error("Zest yield optimizer error:", error);
+    if (error instanceof ZestApiError) {
+      return sendError(`Zest API unavailable: ${error.message}`, 502, "ZEST_API_ERROR");
+    }
+    return sendError(
+      error instanceof Error ? error.message : "Failed to optimize yield",
+      500,
+      "YIELD_OPTIMIZER_ERROR"
+    );
+  }
+}
+
+async function handleZestInterestForecast(request: Request, config: RuntimeConfig): Promise<Response> {
+  const endpointConfig = ENDPOINTS["/api/zest/interest-forecast"];
+
+  try {
+    const paymentResult = await requirePayment(request, config, endpointConfig);
+    if (!paymentResult.ok) {
+      return (paymentResult as PaymentFailure).response;
+    }
+
+    const result = await forecastInterestRates();
+    return sendSuccess(result, 200, paymentResult.settlement);
+  } catch (error) {
+    console.error("Zest interest forecast error:", error);
+    if (error instanceof ZestApiError) {
+      return sendError(`Zest API unavailable: ${error.message}`, 502, "ZEST_API_ERROR");
+    }
+    return sendError(
+      error instanceof Error ? error.message : "Failed to forecast interest rates",
+      500,
+      "INTEREST_FORECAST_ERROR"
+    );
+  }
+}
+
+async function handleZestPositionHealth(request: Request, config: RuntimeConfig): Promise<Response> {
+  const endpointConfig = ENDPOINTS["/api/zest/position-health"];
+  const body = await parseJsonBody(request);
+
+  if (body.error) {
+    return body.error;
+  }
+
+  try {
+    const paymentResult = await requirePayment(request, config, endpointConfig);
+    if (!paymentResult.ok) {
+      return (paymentResult as PaymentFailure).response;
+    }
+
+    const { address, positions } = body.data as {
+      address?: string;
+      positions?: { asset: string; supplied: number; borrowed: number }[];
+    };
+
+    if (!address || !positions || !Array.isArray(positions)) {
+      return sendError("address and positions array are required", 400, "MISSING_FIELD");
+    }
+
+    const result = await analyzePositionHealth({ address, positions });
+    return sendSuccess(result, 200, paymentResult.settlement);
+  } catch (error) {
+    console.error("Zest position health error:", error);
+    if (error instanceof ZestApiError) {
+      return sendError(`Zest API unavailable: ${error.message}`, 502, "ZEST_API_ERROR");
+    }
+    return sendError(
+      error instanceof Error ? error.message : "Failed to analyze position health",
+      500,
+      "POSITION_HEALTH_ERROR"
+    );
+  }
+}
+
+// Cross-Protocol DeFi Handlers
+
+async function handleDefiPortfolioAnalyzer(request: Request, config: RuntimeConfig): Promise<Response> {
+  const endpointConfig = ENDPOINTS["/api/defi/portfolio-analyzer"];
+  const body = await parseJsonBody(request);
+
+  if (body.error) {
+    return body.error;
+  }
+
+  try {
+    const paymentResult = await requirePayment(request, config, endpointConfig);
+    if (!paymentResult.ok) {
+      return (paymentResult as PaymentFailure).response;
+    }
+
+    const { address, alexPositions, zestPositions } = body.data as {
+      address?: string;
+      alexPositions?: { poolId: string; lpTokens: number; token0Symbol: string; token1Symbol: string }[];
+      zestPositions?: { asset: string; supplied: number; borrowed: number }[];
+    };
+
+    if (!address) {
+      return sendError("address is required", 400, "MISSING_FIELD");
+    }
+
+    const result = await analyzePortfolio({ address, alexPositions, zestPositions });
+    return sendSuccess(result, 200, paymentResult.settlement);
+  } catch (error) {
+    console.error("DeFi portfolio analyzer error:", error);
+    if (error instanceof AlexApiError) {
+      return sendError(`Alex API unavailable: ${error.message}`, 502, "ALEX_API_ERROR");
+    }
+    if (error instanceof ZestApiError) {
+      return sendError(`Zest API unavailable: ${error.message}`, 502, "ZEST_API_ERROR");
+    }
+    return sendError(
+      error instanceof Error ? error.message : "Failed to analyze portfolio",
+      500,
+      "PORTFOLIO_ANALYZER_ERROR"
+    );
+  }
+}
+
+async function handleDefiStrategyBuilder(request: Request, config: RuntimeConfig): Promise<Response> {
+  const endpointConfig = ENDPOINTS["/api/defi/strategy-builder"];
+  const body = await parseJsonBody(request);
+
+  if (body.error) {
+    return body.error;
+  }
+
+  try {
+    const paymentResult = await requirePayment(request, config, endpointConfig);
+    if (!paymentResult.ok) {
+      return (paymentResult as PaymentFailure).response;
+    }
+
+    const { capitalUsd, riskTolerance, goals, timeHorizon, preferences } = body.data as {
+      capitalUsd?: number;
+      riskTolerance?: "conservative" | "moderate" | "aggressive";
+      goals?: ("yield" | "growth" | "hedge" | "income")[];
+      timeHorizon?: "short" | "medium" | "long";
+      preferences?: {
+        preferredAssets?: string[];
+        avoidAssets?: string[];
+        maxLeverage?: number;
+      };
+    };
+
+    if (!capitalUsd || !riskTolerance || !goals || !timeHorizon) {
+      return sendError(
+        "capitalUsd, riskTolerance, goals, and timeHorizon are required",
+        400,
+        "MISSING_FIELD"
+      );
+    }
+
+    const validTolerances = ["conservative", "moderate", "aggressive"];
+    const validHorizons = ["short", "medium", "long"];
+
+    if (!validTolerances.includes(riskTolerance)) {
+      return sendError(
+        "riskTolerance must be conservative, moderate, or aggressive",
+        400,
+        "INVALID_FIELD"
+      );
+    }
+
+    if (!validHorizons.includes(timeHorizon)) {
+      return sendError("timeHorizon must be short, medium, or long", 400, "INVALID_FIELD");
+    }
+
+    const result = await buildStrategy({
+      capitalUsd,
+      riskTolerance,
+      goals,
+      timeHorizon,
+      preferences,
+    });
+    return sendSuccess(result, 200, paymentResult.settlement);
+  } catch (error) {
+    console.error("DeFi strategy builder error:", error);
+    if (error instanceof AlexApiError) {
+      return sendError(`Alex API unavailable: ${error.message}`, 502, "ALEX_API_ERROR");
+    }
+    if (error instanceof ZestApiError) {
+      return sendError(`Zest API unavailable: ${error.message}`, 502, "ZEST_API_ERROR");
+    }
+    return sendError(
+      error instanceof Error ? error.message : "Failed to build strategy",
+      500,
+      "STRATEGY_BUILDER_ERROR"
     );
   }
 }
