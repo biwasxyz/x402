@@ -44,6 +44,31 @@ Paid endpoints return HTTP 402 with x402-stacks payment requirements when no pay
 | `/api/wallet/trading` | POST | 0.005 STX | AI-enhanced trading behavior analysis |
 | `/api/wallet/pnl` | POST | 0.005 STX | AI-enhanced profit/loss analysis |
 
+### Alex Lab DEX Analytics (AI-Enhanced)
+
+| Endpoint | Method | Price | Description |
+|----------|--------|-------|-------------|
+| `/api/alex/swap-optimizer` | POST | 0.005 STX | AI swap route optimization with execution strategy |
+| `/api/alex/pool-risk` | POST | 0.008 STX | LP position risk analysis with IL scenarios |
+| `/api/alex/arbitrage-scan` | GET | 0.01 STX | Cross-pool arbitrage opportunity scanner |
+| `/api/alex/market-regime` | GET | 0.005 STX | Market regime detection (trending/ranging/volatile) |
+
+### Zest Protocol Lending Analytics (AI-Enhanced)
+
+| Endpoint | Method | Price | Description |
+|----------|--------|-------|-------------|
+| `/api/zest/liquidation-risk` | POST | 0.008 STX | Liquidation risk monitor with price scenarios |
+| `/api/zest/yield-optimizer` | POST | 0.008 STX | Lending yield optimization strategies |
+| `/api/zest/interest-forecast` | GET | 0.005 STX | Interest rate predictions (24h/7d) |
+| `/api/zest/position-health` | POST | 0.005 STX | Position health check with rebalancing suggestions |
+
+### Cross-Protocol DeFi Intelligence (AI-Enhanced)
+
+| Endpoint | Method | Price | Description |
+|----------|--------|-------|-------------|
+| `/api/defi/portfolio-analyzer` | POST | 0.015 STX | Combined Alex LP + Zest lending analysis |
+| `/api/defi/strategy-builder` | POST | 0.02 STX | AI-generated DeFi strategy with execution plan |
+
 ### Free Endpoints
 
 | Endpoint | Method | Description |
@@ -108,6 +133,31 @@ bun run scripts/wallet-trading.ts <address>
 bun run scripts/wallet-pnl.ts <address>
 ```
 
+#### Alex Lab DEX Analytics (AI-Enhanced)
+
+```bash
+bun run scripts/alex-swap-optimizer.ts <tokenIn> <tokenOut> <amountIn>
+bun run scripts/alex-pool-risk.ts <poolId> [investmentAmount]
+bun run scripts/alex-arbitrage-scan.ts
+bun run scripts/alex-market-regime.ts
+```
+
+#### Zest Protocol Lending (AI-Enhanced)
+
+```bash
+bun run scripts/zest-liquidation-risk.ts <address> <collateralAsset> <collateralAmount> <debtAsset> <debtAmount>
+bun run scripts/zest-yield-optimizer.ts <capitalUsd> <riskTolerance>
+bun run scripts/zest-interest-forecast.ts
+bun run scripts/zest-position-health.ts <address>
+```
+
+#### Cross-Protocol DeFi Intelligence (AI-Enhanced)
+
+```bash
+bun run scripts/defi-portfolio-analyzer.ts <address>
+bun run scripts/defi-strategy-builder.ts <capitalUsd> <riskTolerance> <timeHorizon>
+```
+
 ### Example Addresses/IDs
 
 ```bash
@@ -160,14 +210,26 @@ src/
     ├── tenero-market.service.ts   # Market data (stats, gainers, losers, whales)
     ├── tenero-pools.service.ts    # Pool data (trending, OHLC)
     ├── tenero-tokens.service.ts   # Token data (summary, details)
-    └── tenero-wallets.service.ts  # AI-enhanced wallet analytics
+    ├── tenero-wallets.service.ts  # AI-enhanced wallet analytics
+    ├── alex/
+    │   ├── client.ts              # Alex Lab API client
+    │   └── types.ts               # Alex type definitions
+    ├── alex.service.ts            # Alex DEX analytics (swap, pools, arbitrage)
+    ├── zest/
+    │   ├── client.ts              # Zest Protocol API client
+    │   └── types.ts               # Zest type definitions
+    ├── zest.service.ts            # Zest lending analytics (risk, yield, rates)
+    └── defi.service.ts            # Cross-protocol DeFi intelligence
 
 scripts/
 ├── news.ts, audit.ts, etc.        # Original endpoint probes
 ├── market-*.ts                    # Market data probes
 ├── pools-*.ts                     # Pool data probes
 ├── tokens-*.ts                    # Token data probes
-└── wallet-*.ts                    # Wallet analytics probes
+├── wallet-*.ts                    # Wallet analytics probes
+├── alex-*.ts                      # Alex DEX analytics probes
+├── zest-*.ts                      # Zest lending analytics probes
+└── defi-*.ts                      # Cross-protocol DeFi probes
 ```
 
 ## Data Sources
@@ -175,3 +237,5 @@ scripts/
 - **AI Analysis**: OpenRouter (Grok 4.1 Fast, Claude 3.5 Sonnet)
 - **Market Data**: [Tenero API](https://docs.tenero.io/) (free public endpoints, formerly STXTools)
 - **Blockchain Data**: [Hiro Stacks API](https://docs.hiro.so/stacks)
+- **DEX Data**: [Alex Lab](https://alexlab.co/) (AMM pools, swap routes, token prices)
+- **Lending Data**: [Zest Protocol](https://zestprotocol.com/) (lending markets, interest rates, positions)
