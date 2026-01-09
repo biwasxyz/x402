@@ -3,6 +3,38 @@
 ## Project Summary
 Cloudflare Worker that implements the x402-stacks payment protocol for AI-powered Stacks analytics. Paid AI endpoints return HTTP 402 until a valid STX or sBTC payment is provided, while free Tenero market/pools/tokens endpoints bypass payment.
 
+## Available Endpoints
+
+### AI-Powered (Paid)
+- `/api/news` (0.001 STX) - Stacks/Bitcoin news
+- `/api/audit` (0.02 STX) - Clarity contract security audit
+- `/api/wallet/classify` (0.005 STX) - Wallet behavior classification
+- `/api/research/user` (0.005 STX) - X/Twitter user research
+- `/api/sentiment` (0.005 STX) - Crypto sentiment analysis
+- `/api/wallet/trading` (0.005 STX) - Trading behavior analysis
+- `/api/wallet/pnl` (0.005 STX) - Profit/loss analysis
+
+### Alex Lab DEX (Paid)
+- `/api/alex/swap-optimizer` (0.005 STX) - AI swap route optimization
+- `/api/alex/pool-risk` (0.008 STX) - LP position risk with IL scenarios
+- `/api/alex/arbitrage-scan` (0.01 STX) - Cross-pool arbitrage scanner
+- `/api/alex/market-regime` (0.005 STX) - Market regime detection
+
+### Zest Protocol Lending (Paid)
+- `/api/zest/liquidation-risk` (0.008 STX) - Liquidation risk monitor
+- `/api/zest/yield-optimizer` (0.008 STX) - Yield optimization strategies
+- `/api/zest/interest-forecast` (0.005 STX) - Interest rate predictions
+- `/api/zest/position-health` (0.005 STX) - Position health check
+
+### Cross-Protocol DeFi (Paid)
+- `/api/defi/portfolio-analyzer` (0.015 STX) - Combined Alex+Zest analysis
+- `/api/defi/strategy-builder` (0.02 STX) - AI DeFi strategy generation
+
+### Free Endpoints
+- `/api/market/*` - Market stats, gainers, losers, whales, netflow
+- `/api/pools/*` - Trending pools, OHLC data
+- `/api/tokens/*` - Token summary and details
+
 ## Key Commands
 - `npm install` - Install dependencies.
 - `npm run dev` - Run the Worker locally (wrangler dev).
@@ -20,7 +52,14 @@ Environment variables (local or via `wrangler secret put`):
 ## Code Layout
 - `src/worker.ts` - Request routing and payment flow.
 - `src/services/` - AI and blockchain service integrations.
+  - `alex/` - Alex Lab DEX client and types
+  - `alex.service.ts` - Alex swap/pool/arbitrage analytics
+  - `zest/` - Zest Protocol client and types
+  - `zest.service.ts` - Zest lending/risk/yield analytics
+  - `defi.service.ts` - Cross-protocol portfolio and strategy
+  - `tenero/` - Tenero market data client
 - `src/utils/` - Payment verification and response helpers.
+- `scripts/` - Endpoint test probes (alex-*, zest-*, defi-*).
 
 ## Knowledge Base References
 Use the local knowledge base for Stacks/Clarity and protocol guidance: `/Users/biwas/claudex402/claude-knowledge`.
