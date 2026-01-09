@@ -1,3 +1,10 @@
+// Alex Market Regime - Detects current market conditions (trending/ranging/volatile)
+//
+// No parameters required - analyzes all Alex DEX pools to determine market regime
+//
+// Example usage:
+//   bun run scripts/alex-market-regime.ts
+
 import {
   createApiClient,
   printResponse,
