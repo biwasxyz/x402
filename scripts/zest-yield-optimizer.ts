@@ -1,3 +1,15 @@
+// Zest Yield Optimizer - AI-generated lending yield strategies
+//
+// Risk tolerance levels:
+//   conservative - Supply-only strategies, no leverage
+//   moderate     - Light leverage, balanced risk/reward
+//   aggressive   - Higher leverage, maximum yield potential
+//
+// Example usage:
+//   bun run scripts/zest-yield-optimizer.ts 5000 moderate
+//   bun run scripts/zest-yield-optimizer.ts 10000 conservative
+//   bun run scripts/zest-yield-optimizer.ts 25000 aggressive
+
 import {
   createApiClient,
   printResponse,
@@ -12,7 +24,7 @@ async function run() {
     throw new Error(
       "Usage: bun run scripts/zest-yield-optimizer.ts <capitalUsd> <riskTolerance>\n" +
         "Risk tolerance: conservative | moderate | aggressive\n" +
-        "Example: bun run scripts/zest-yield-optimizer.ts 10000 moderate"
+        "Example: bun run scripts/zest-yield-optimizer.ts 5000 moderate"
     );
   }
 

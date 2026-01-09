@@ -1,3 +1,14 @@
+// Alex Pool Risk - AI-enhanced LP position risk analysis with IL scenarios
+//
+// Example Alex pool IDs (use hash format from Tenero):
+//   aBTC/aUSD  - 0x051d7b3543df4c000189f466b570e0d29df55668c8bb914fd468ea434c741b57
+//   STX/ALEX   - 0x5b5ccc41f222978fd73284c4c73483e19444cee1eca6a8e948f37a163792603b
+//   aBTC/STX   - 0x88d2c0c350cae90ab46d304a859ec77a89e54ff6d09967ee1169eec3d705867c
+//
+// Example usage:
+//   bun run scripts/alex-pool-risk.ts 0x051d7b3543df4c000189f466b570e0d29df55668c8bb914fd468ea434c741b57 1000
+//   bun run scripts/alex-pool-risk.ts 0x5b5ccc41f222978fd73284c4c73483e19444cee1eca6a8e948f37a163792603b 5000
+
 import {
   createApiClient,
   printResponse,
@@ -11,7 +22,7 @@ async function run() {
   if (!poolId) {
     throw new Error(
       "Usage: bun run scripts/alex-pool-risk.ts <poolId> [investmentAmount]\n" +
-        "Example: bun run scripts/alex-pool-risk.ts SM1793C4R5PZ4NS4VQ4WMP7SKKYVH8JZEWSZ9HCCR.xyk-pool-stx-alex 1000"
+        "Example: bun run scripts/alex-pool-risk.ts 0x051d7b3543df4c000189f466b570e0d29df55668c8bb914fd468ea434c741b57 1000"
     );
   }
 

@@ -50,12 +50,54 @@ export async function fetchAlexPools(callerEndpoint: string = "/api/alex"): Prom
     throw new AlexApiError("Failed to fetch pools", response.status, "/pools");
   }
 
-  const result = await response.json() as { data: AlexPoolData[] };
-  // Filter to Alex pools only (platform = alex)
-  return result.data.filter((p: AlexPoolData) => p.platform?.toLowerCase() === "alex");
+  const result = await response.json() as TeneroPoolsResponse;
+  // Filter to Alex pools only (pool_platform = ALEX)
+  const alexPools = result.data.rows.filter((p) => p.pool_platform?.toUpperCase() === "ALEX");
+
+  // Map to our AlexPoolData format
+  return alexPools.map((p): AlexPoolData => ({
+    pool_id: p.pool_id,
+    pool_address: p.pool_address || p.pool_id,
+    platform: p.pool_platform,
+    token_0_address: p.token0_address,
+    token_1_address: p.token1_address,
+    token_0_symbol: p.base_token?.symbol || "",
+    token_1_symbol: p.quote_token?.symbol || "",
+    token_0_reserve: String(p.base_token_reserve || 0),
+    token_1_reserve: String(p.quote_token_reserve || 0),
+    token_0_price_usd: p.base_token_price_usd || 0,
+    token_1_price_usd: p.quote_token_price_usd || 0,
+    tvl_usd: p.liquidity_usd || 0,
+    volume_24h_usd: p.metrics?.volume_1d_usd || 0,
+    fee_rate: p.fee_rate || 0.003,
+  }));
+}
+
+interface TeneroPoolsResponse {
+  data: {
+    rows: TeneroPoolRow[];
+  };
+}
+
+interface TeneroPoolRow {
+  pool_id: string;
+  pool_address: string;
+  pool_platform: string;
+  token0_address: string;
+  token1_address: string;
+  base_token?: { symbol: string };
+  quote_token?: { symbol: string };
+  base_token_reserve: number;
+  quote_token_reserve: number;
+  base_token_price_usd?: number;
+  quote_token_price_usd?: number;
+  liquidity_usd?: number;
+  fee_rate?: number;
+  metrics?: { volume_1d_usd?: number };
 }
 
 export interface AlexPoolData {
+  pool_id: string;
   pool_address: string;
   platform: string;
   token_0_address: string;
@@ -84,12 +126,12 @@ export async function fetchTokenPrices(callerEndpoint: string = "/api/alex"): Pr
     throw new AlexApiError("Failed to fetch tokens", response.status, "/tokens");
   }
 
-  const result = await response.json() as { data: TokenData[] };
+  const result = await response.json() as TeneroTokensResponse;
   const priceMap = new Map<string, number>();
 
-  for (const token of result.data) {
-    if (token.token_address && token.price_usd) {
-      priceMap.set(token.token_address, token.price_usd);
+  for (const token of result.data.rows) {
+    if (token.address && token.price_usd) {
+      priceMap.set(token.address, token.price_usd);
       if (token.symbol) {
         priceMap.set(token.symbol.toUpperCase(), token.price_usd);
       }
@@ -99,8 +141,14 @@ export async function fetchTokenPrices(callerEndpoint: string = "/api/alex"): Pr
   return priceMap;
 }
 
-interface TokenData {
-  token_address: string;
+interface TeneroTokensResponse {
+  data: {
+    rows: TeneroTokenRow[];
+  };
+}
+
+interface TeneroTokenRow {
+  address: string;
   symbol: string;
   price_usd: number;
 }

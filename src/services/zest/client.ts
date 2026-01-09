@@ -32,12 +32,12 @@ export async function fetchZestMarketStats(
     throw new ZestApiError("Failed to fetch market data", response.status, "/tokens");
   }
 
-  const tokensResult = await response.json() as { data: TokenInfo[] };
+  const tokensResult = await response.json() as TeneroTokensResponse;
   const tokenMap = new Map<string, TokenInfo>();
 
-  for (const token of tokensResult.data) {
+  for (const token of tokensResult.data.rows) {
     tokenMap.set(token.symbol?.toUpperCase(), token);
-    tokenMap.set(token.token_address, token);
+    tokenMap.set(token.address, token);
   }
 
   // Build reserve data for supported Zest assets
@@ -146,13 +146,13 @@ export async function fetchZestTokenPrices(
     throw new ZestApiError("Failed to fetch prices", response.status, "/tokens");
   }
 
-  const result = await response.json() as { data: TokenInfo[] };
+  const result = await response.json() as TeneroTokensResponse;
   const priceMap = new Map<string, number>();
 
-  for (const token of result.data) {
+  for (const token of result.data.rows) {
     if (token.price_usd) {
       priceMap.set(token.symbol?.toUpperCase(), token.price_usd);
-      priceMap.set(token.token_address, token.price_usd);
+      priceMap.set(token.address, token.price_usd);
     }
   }
 
@@ -200,8 +200,14 @@ function getLiquidationThreshold(symbol: string): number {
   return thresholds[symbol] || 0.75;
 }
 
+interface TeneroTokensResponse {
+  data: {
+    rows: TokenInfo[];
+  };
+}
+
 interface TokenInfo {
-  token_address: string;
+  address: string;
   symbol: string;
   name: string;
   price_usd: number;

@@ -1,3 +1,19 @@
+// Zest Liquidation Risk - Monitor liquidation risk with price scenarios
+//
+// Supported assets (use symbol):
+//   STX    - Stacks native token
+//   sBTC   - Wrapped Bitcoin on Stacks
+//   stSTX  - Stacked STX (liquid staking)
+//   aeUSDC - Bridged USDC (stablecoin)
+//
+// Example addresses:
+//   SP1M8KHCJXB3SBRQRDBCG3J3859AA1CN0AWDHN17B
+//   SP2KZ24AM4X9HGTG8314MS4VSY1CVAFH0G1KBZZ1D
+//
+// Example usage:
+//   bun run scripts/zest-liquidation-risk.ts SP1M8KHCJXB3SBRQRDBCG3J3859AA1CN0AWDHN17B STX 5000 aeUSDC 1000
+//   bun run scripts/zest-liquidation-risk.ts SP2KZ24AM4X9HGTG8314MS4VSY1CVAFH0G1KBZZ1D stSTX 2000 STX 500
+
 import {
   createApiClient,
   printResponse,
@@ -14,7 +30,8 @@ async function run() {
   if (!address || !collateralAsset || isNaN(collateralAmount) || !debtAsset || isNaN(debtAmount)) {
     throw new Error(
       "Usage: bun run scripts/zest-liquidation-risk.ts <address> <collateralAsset> <collateralAmount> <debtAsset> <debtAmount>\n" +
-        "Example: bun run scripts/zest-liquidation-risk.ts SP2KZ24AM4X9HGTG8314MS4VSY1CVAFH0G1KBZZ1D STX 1000 aeUSDC 500"
+        "Assets: STX, sBTC, stSTX, aeUSDC\n" +
+        "Example: bun run scripts/zest-liquidation-risk.ts SP1M8KHCJXB3SBRQRDBCG3J3859AA1CN0AWDHN17B STX 5000 aeUSDC 1000"
     );
   }
 

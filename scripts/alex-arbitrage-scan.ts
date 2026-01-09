@@ -1,3 +1,10 @@
+// Alex Arbitrage Scanner - Cross-pool arbitrage opportunity finder
+//
+// No parameters required - scans all Alex DEX pools for price discrepancies
+//
+// Example usage:
+//   bun run scripts/alex-arbitrage-scan.ts
+
 import {
   createApiClient,
   printResponse,

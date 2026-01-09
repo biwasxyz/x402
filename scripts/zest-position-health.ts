@@ -1,3 +1,17 @@
+// Zest Position Health - Comprehensive health check with rebalancing suggestions
+//
+// Example addresses:
+//   SP1M8KHCJXB3SBRQRDBCG3J3859AA1CN0AWDHN17B
+//   SP2KZ24AM4X9HGTG8314MS4VSY1CVAFH0G1KBZZ1D
+//
+// Default positions (if not provided):
+//   STX: 1000 supplied, 200 borrowed
+//   aeUSDC: 500 supplied, 0 borrowed
+//
+// Example usage:
+//   bun run scripts/zest-position-health.ts SP1M8KHCJXB3SBRQRDBCG3J3859AA1CN0AWDHN17B
+//   bun run scripts/zest-position-health.ts SP2KZ24AM4X9HGTG8314MS4VSY1CVAFH0G1KBZZ1D '[{"asset":"STX","supplied":5000,"borrowed":1000}]'
+
 import {
   createApiClient,
   printResponse,
@@ -10,8 +24,8 @@ async function run() {
   if (!address) {
     throw new Error(
       "Usage: bun run scripts/zest-position-health.ts <address> [positions JSON]\n" +
-        "Example: bun run scripts/zest-position-health.ts SP2KZ24AM4X9HGTG8314MS4VSY1CVAFH0G1KBZZ1D\n" +
-        "With positions: bun run scripts/zest-position-health.ts SP2K... '[{\"asset\":\"STX\",\"supplied\":1000,\"borrowed\":200}]'"
+        "Example: bun run scripts/zest-position-health.ts SP1M8KHCJXB3SBRQRDBCG3J3859AA1CN0AWDHN17B\n" +
+        "With positions: bun run scripts/zest-position-health.ts SP2K... '[{\"asset\":\"STX\",\"supplied\":5000,\"borrowed\":1000}]'"
     );
   }
 

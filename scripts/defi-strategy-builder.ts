@@ -1,3 +1,20 @@
+// DeFi Strategy Builder - AI-generated DeFi strategy with execution plan
+//
+// Risk tolerance levels:
+//   conservative - Low-risk strategies, minimal leverage
+//   moderate     - Balanced risk/reward, light leverage
+//   aggressive   - High-yield focus, higher leverage
+//
+// Time horizons:
+//   short  - Days to weeks (focus on quick opportunities)
+//   medium - Weeks to months (balanced approach)
+//   long   - Months to years (compound growth focus)
+//
+// Example usage:
+//   bun run scripts/defi-strategy-builder.ts 5000 conservative short
+//   bun run scripts/defi-strategy-builder.ts 10000 moderate medium
+//   bun run scripts/defi-strategy-builder.ts 50000 aggressive long
+
 import {
   createApiClient,
   printResponse,
