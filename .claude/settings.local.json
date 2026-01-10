@@ -11,7 +11,8 @@
       "WebSearch",
       "WebFetch(domain:pages.johnspurlock.com)",
       "WebFetch(domain:cfdata.lol)",
-      "Bash(bun run:*)"
+      "Bash(bun run:*)",
+      "Bash(curl:*)"
     ]
   }
 }
