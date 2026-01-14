@@ -35,6 +35,11 @@ Cloudflare Worker that implements the x402-stacks payment protocol for AI-powere
 - `/api/pools/*` - Trending pools, OHLC data
 - `/api/tokens/*` - Token summary and details
 
+### x402 Scan Registration
+- `/.well-known/x402.json` - x402 scan manifest endpoint (auto-generated from SERVER_ADDRESS)
+- `x402-manifest.json` - Static manifest file template
+- Register at x402 scan by submitting: `https://your-worker-url/.well-known/x402.json`
+
 ## Key Commands
 - `npm install` - Install dependencies.
 - `npm run dev` - Run the Worker locally (wrangler dev).
