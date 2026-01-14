@@ -336,6 +336,11 @@ async function handleRequest(request: Request, env: Env, url: URL, method: strin
       return jsonResponse(analytics);
     }
 
+    // x402 scan manifest (free)
+    if (method === "GET" && url.pathname === "/.well-known/x402.json") {
+      return serveX402Manifest(env);
+    }
+
     // Root info (free)
     if (method === "GET" && url.pathname === "/") {
       const endpoints = Object.values(ENDPOINTS).map((endpoint) => ({
@@ -354,6 +359,7 @@ async function handleRequest(request: Request, env: Env, url: URL, method: strin
       return jsonResponse({
         status: "ok",
         service: "x402-stacks",
+        x402Manifest: "/.well-known/x402.json",
         endpoints,
         health: "/health",
       });
@@ -1331,6 +1337,389 @@ async function handleDefiStrategyBuilder(request: Request, config: RuntimeConfig
       "STRATEGY_BUILDER_ERROR"
     );
   }
+}
+
+function serveX402Manifest(env: Env): Response {
+  const serverAddress = env.SERVER_ADDRESS || "YOUR_STACKS_ADDRESS";
+
+  const manifest = {
+    x402Version: 1,
+    name: "x402-stacks AI Analytics",
+    image: "https://x402stacks.xyz/logo.png",
+    accepts: [
+      {
+        scheme: "exact",
+        network: "stacks",
+        maxAmountRequired: "1000",
+        resource: "/api/news",
+        description: "Get latest Stacks and Bitcoin news with AI analysis",
+        mimeType: "application/json",
+        payTo: serverAddress,
+        maxTimeoutSeconds: 60,
+        asset: "STX",
+        outputSchema: {
+          input: { type: "http", method: "GET" },
+          output: { news: "array", analysis: "string", timestamp: "string" }
+        }
+      },
+      {
+        scheme: "exact",
+        network: "stacks",
+        maxAmountRequired: "20000",
+        resource: "/api/audit",
+        description: "Security audit for Clarity smart contracts",
+        mimeType: "application/json",
+        payTo: serverAddress,
+        maxTimeoutSeconds: 120,
+        asset: "STX",
+        outputSchema: {
+          input: {
+            type: "http",
+            method: "POST",
+            bodyType: "json",
+            bodyFields: {
+              contractIdentifier: { type: "string", required: true, description: "Contract identifier (e.g., SP123.contract-name)" }
+            }
+          },
+          output: { vulnerabilities: "array", riskLevel: "string", recommendations: "array", score: "number" }
+        }
+      },
+      {
+        scheme: "exact",
+        network: "stacks",
+        maxAmountRequired: "5000",
+        resource: "/api/wallet/classify",
+        description: "Classify wallet behavior (trader, whale, bot, dao, bridge)",
+        mimeType: "application/json",
+        payTo: serverAddress,
+        maxTimeoutSeconds: 60,
+        asset: "STX",
+        outputSchema: {
+          input: {
+            type: "http",
+            method: "POST",
+            bodyType: "json",
+            bodyFields: {
+              address: { type: "string", required: true, description: "Stacks wallet address to classify" }
+            }
+          },
+          output: { classification: "string", confidence: "number", traits: "array", analysis: "string" }
+        }
+      },
+      {
+        scheme: "exact",
+        network: "stacks",
+        maxAmountRequired: "5000",
+        resource: "/api/research/user",
+        description: "Research user profile from X/Twitter and web sources",
+        mimeType: "application/json",
+        payTo: serverAddress,
+        maxTimeoutSeconds: 90,
+        asset: "STX",
+        outputSchema: {
+          input: {
+            type: "http",
+            method: "POST",
+            bodyType: "json",
+            bodyFields: {
+              username: { type: "string", required: true, description: "X/Twitter username to research" }
+            }
+          },
+          output: { profile: "object", sentiment: "string", summary: "string" }
+        }
+      },
+      {
+        scheme: "exact",
+        network: "stacks",
+        maxAmountRequired: "5000",
+        resource: "/api/sentiment",
+        description: "Real-time sentiment analysis for crypto tokens on X/Twitter",
+        mimeType: "application/json",
+        payTo: serverAddress,
+        maxTimeoutSeconds: 60,
+        asset: "STX",
+        outputSchema: {
+          input: {
+            type: "http",
+            method: "POST",
+            bodyType: "json",
+            bodyFields: {
+              topic: { type: "string", required: false, description: "Topic or token to analyze sentiment for" }
+            }
+          },
+          output: { sentiment: "string", score: "number", analysis: "string", sources: "array" }
+        }
+      },
+      {
+        scheme: "exact",
+        network: "stacks",
+        maxAmountRequired: "5000",
+        resource: "/api/wallet/trading",
+        description: "AI-enhanced wallet trading behavior analysis",
+        mimeType: "application/json",
+        payTo: serverAddress,
+        maxTimeoutSeconds: 60,
+        asset: "STX",
+        outputSchema: {
+          input: {
+            type: "http",
+            method: "POST",
+            bodyType: "json",
+            bodyFields: {
+              address: { type: "string", required: true, description: "Stacks wallet address to analyze" }
+            }
+          },
+          output: { tradingPattern: "string", frequency: "string", profitability: "object", analysis: "string" }
+        }
+      },
+      {
+        scheme: "exact",
+        network: "stacks",
+        maxAmountRequired: "5000",
+        resource: "/api/wallet/pnl",
+        description: "AI-enhanced wallet profit/loss analysis",
+        mimeType: "application/json",
+        payTo: serverAddress,
+        maxTimeoutSeconds: 60,
+        asset: "STX",
+        outputSchema: {
+          input: {
+            type: "http",
+            method: "POST",
+            bodyType: "json",
+            bodyFields: {
+              address: { type: "string", required: true, description: "Stacks wallet address to analyze" }
+            }
+          },
+          output: { totalPnl: "number", realizedPnl: "number", unrealizedPnl: "number", analysis: "string" }
+        }
+      },
+      {
+        scheme: "exact",
+        network: "stacks",
+        maxAmountRequired: "5000",
+        resource: "/api/alex/swap-optimizer",
+        description: "AI swap route optimizer - finds optimal routes, calculates slippage, recommends execution strategy",
+        mimeType: "application/json",
+        payTo: serverAddress,
+        maxTimeoutSeconds: 60,
+        asset: "STX",
+        outputSchema: {
+          input: {
+            type: "http",
+            method: "POST",
+            bodyType: "json",
+            bodyFields: {
+              tokenIn: { type: "string", required: true, description: "Input token symbol or contract" },
+              tokenOut: { type: "string", required: true, description: "Output token symbol or contract" },
+              amountIn: { type: "number", required: true, description: "Amount of input token" }
+            }
+          },
+          output: { optimalRoute: "array", expectedOutput: "number", slippage: "number", recommendation: "string" }
+        }
+      },
+      {
+        scheme: "exact",
+        network: "stacks",
+        maxAmountRequired: "8000",
+        resource: "/api/alex/pool-risk",
+        description: "LP position risk analyzer - impermanent loss scenarios, pool sustainability assessment",
+        mimeType: "application/json",
+        payTo: serverAddress,
+        maxTimeoutSeconds: 60,
+        asset: "STX",
+        outputSchema: {
+          input: {
+            type: "http",
+            method: "POST",
+            bodyType: "json",
+            bodyFields: {
+              poolId: { type: "string", required: true, description: "Alex pool identifier" },
+              investmentAmount: { type: "number", required: false, description: "Investment amount for IL calculation" }
+            }
+          },
+          output: { riskLevel: "string", impermanentLossScenarios: "array", sustainability: "object", recommendation: "string" }
+        }
+      },
+      {
+        scheme: "exact",
+        network: "stacks",
+        maxAmountRequired: "10000",
+        resource: "/api/alex/arbitrage-scan",
+        description: "Cross-pool arbitrage scanner - finds price discrepancies, calculates profitable paths",
+        mimeType: "application/json",
+        payTo: serverAddress,
+        maxTimeoutSeconds: 60,
+        asset: "STX",
+        outputSchema: {
+          input: { type: "http", method: "GET" },
+          output: { opportunities: "array", bestPath: "object", expectedProfit: "number", analysis: "string" }
+        }
+      },
+      {
+        scheme: "exact",
+        network: "stacks",
+        maxAmountRequired: "5000",
+        resource: "/api/alex/market-regime",
+        description: "Market regime detector - classifies current market conditions (trending, ranging, volatile)",
+        mimeType: "application/json",
+        payTo: serverAddress,
+        maxTimeoutSeconds: 60,
+        asset: "STX",
+        outputSchema: {
+          input: { type: "http", method: "GET" },
+          output: { regime: "string", confidence: "number", indicators: "object", analysis: "string" }
+        }
+      },
+      {
+        scheme: "exact",
+        network: "stacks",
+        maxAmountRequired: "8000",
+        resource: "/api/zest/liquidation-risk",
+        description: "Liquidation risk monitor - health factor analysis, price scenario simulation, liquidation probability",
+        mimeType: "application/json",
+        payTo: serverAddress,
+        maxTimeoutSeconds: 60,
+        asset: "STX",
+        outputSchema: {
+          input: {
+            type: "http",
+            method: "POST",
+            bodyType: "json",
+            bodyFields: {
+              address: { type: "string", required: true, description: "Stacks wallet address" },
+              collateralAsset: { type: "string", required: true, description: "Collateral asset symbol" },
+              collateralAmount: { type: "number", required: true, description: "Amount of collateral" },
+              debtAsset: { type: "string", required: true, description: "Debt asset symbol" },
+              debtAmount: { type: "number", required: true, description: "Amount of debt" }
+            }
+          },
+          output: { healthFactor: "number", liquidationPrice: "number", riskLevel: "string", scenarios: "array" }
+        }
+      },
+      {
+        scheme: "exact",
+        network: "stacks",
+        maxAmountRequired: "8000",
+        resource: "/api/zest/yield-optimizer",
+        description: "Lending yield optimizer - analyzes all markets, recommends optimal supply/borrow strategy",
+        mimeType: "application/json",
+        payTo: serverAddress,
+        maxTimeoutSeconds: 60,
+        asset: "STX",
+        outputSchema: {
+          input: {
+            type: "http",
+            method: "POST",
+            bodyType: "json",
+            bodyFields: {
+              capitalUsd: { type: "number", required: true, description: "Capital to deploy in USD" },
+              riskTolerance: { type: "string", required: true, description: "Risk tolerance: conservative, moderate, or aggressive" },
+              preferredAssets: { type: "array", required: false, description: "Preferred assets to use" }
+            }
+          },
+          output: { strategy: "object", expectedYield: "number", risks: "array", recommendation: "string" }
+        }
+      },
+      {
+        scheme: "exact",
+        network: "stacks",
+        maxAmountRequired: "5000",
+        resource: "/api/zest/interest-forecast",
+        description: "Interest rate forecaster - predicts rate movements based on utilization trends",
+        mimeType: "application/json",
+        payTo: serverAddress,
+        maxTimeoutSeconds: 60,
+        asset: "STX",
+        outputSchema: {
+          input: { type: "http", method: "GET" },
+          output: { forecasts: "array", trends: "object", analysis: "string" }
+        }
+      },
+      {
+        scheme: "exact",
+        network: "stacks",
+        maxAmountRequired: "5000",
+        resource: "/api/zest/position-health",
+        description: "Position health analyzer - comprehensive health check with AI rebalancing recommendations",
+        mimeType: "application/json",
+        payTo: serverAddress,
+        maxTimeoutSeconds: 60,
+        asset: "STX",
+        outputSchema: {
+          input: {
+            type: "http",
+            method: "POST",
+            bodyType: "json",
+            bodyFields: {
+              address: { type: "string", required: true, description: "Stacks wallet address" },
+              positions: { type: "array", required: true, description: "Array of positions with asset, supplied, and borrowed amounts" }
+            }
+          },
+          output: { overallHealth: "string", positionDetails: "array", recommendations: "array" }
+        }
+      },
+      {
+        scheme: "exact",
+        network: "stacks",
+        maxAmountRequired: "15000",
+        resource: "/api/defi/portfolio-analyzer",
+        description: "DeFi portfolio intelligence - analyzes combined Alex LP + Zest positions, risk assessment, optimization",
+        mimeType: "application/json",
+        payTo: serverAddress,
+        maxTimeoutSeconds: 90,
+        asset: "STX",
+        outputSchema: {
+          input: {
+            type: "http",
+            method: "POST",
+            bodyType: "json",
+            bodyFields: {
+              address: { type: "string", required: true, description: "Stacks wallet address" },
+              alexPositions: { type: "array", required: false, description: "Alex LP positions" },
+              zestPositions: { type: "array", required: false, description: "Zest lending positions" }
+            }
+          },
+          output: { totalValue: "number", riskAssessment: "object", optimization: "object", analysis: "string" }
+        }
+      },
+      {
+        scheme: "exact",
+        network: "stacks",
+        maxAmountRequired: "20000",
+        resource: "/api/defi/strategy-builder",
+        description: "AI strategy builder - generates complete DeFi strategy across Alex and Zest with execution plan",
+        mimeType: "application/json",
+        payTo: serverAddress,
+        maxTimeoutSeconds: 120,
+        asset: "STX",
+        outputSchema: {
+          input: {
+            type: "http",
+            method: "POST",
+            bodyType: "json",
+            bodyFields: {
+              capitalUsd: { type: "number", required: true, description: "Capital to deploy in USD" },
+              riskTolerance: { type: "string", required: true, description: "Risk tolerance: conservative, moderate, or aggressive" },
+              goals: { type: "array", required: true, description: "Investment goals: yield, growth, hedge, income" },
+              timeHorizon: { type: "string", required: true, description: "Time horizon: short, medium, or long" },
+              preferences: { type: "object", required: false, description: "Optional preferences for assets and leverage" }
+            }
+          },
+          output: { strategy: "object", allocations: "array", executionPlan: "array", expectedReturns: "object", risks: "array" }
+        }
+      }
+    ]
+  };
+
+  return new Response(JSON.stringify(manifest, null, 2), {
+    status: 200,
+    headers: {
+      "content-type": "application/json",
+      "access-control-allow-origin": "*",
+      "cache-control": "public, max-age=3600",
+    },
+  });
 }
 
 async function parseJsonBody(request: Request): Promise<{ data?: unknown; error?: Response }> {
