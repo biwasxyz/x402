@@ -1,7 +1,6 @@
 // BNS Domain Valuation and Portfolio Analysis Service
-import { fetchBnsName, fetchAddressNames, HiroApiError } from "./hiro/client";
+import { fetchBnsName, fetchAddressNames } from "./hiro/client";
 import { getOpenRouter } from "./openrouter.service";
-import { BnsNameInfo } from "./hiro/types";
 
 // Result types
 export interface BnsValuation {
@@ -74,7 +73,6 @@ function categorizeNameSync(name: string): string {
 }
 
 function calculateBaseValue(name: string): { low: number; mid: number; high: number } {
-  const cleanName = name.replace(/\.btc$/, "").toLowerCase();
   const category = categorizeNameSync(name);
 
   // Base values in STX

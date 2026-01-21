@@ -21,7 +21,7 @@ import { getTrendingPools, getPoolOhlc } from "./services/tenero-pools.service";
 import { getTokenSummary, getTokenDetails } from "./services/tenero-tokens.service";
 import { TrendingTimeframe } from "./services/tenero/types";
 import { analyzeWalletTrading, analyzeWalletPnl } from "./services/tenero-wallets.service";
-import { getWorkerAnalytics, getSubrequestStats, trackEndpointKV, getEndpointStatsKV } from "./services/analytics.service";
+import { getWorkerAnalytics, trackEndpointKV, getEndpointStatsKV } from "./services/analytics.service";
 import { ANALYTICS_HTML } from "./analytics-page";
 // Alex Lab services
 import {
@@ -740,7 +740,7 @@ async function handleSentiment(request: Request, config: RuntimeConfig): Promise
 
 // Tenero Market Handlers
 
-async function handleMarketStats(request: Request, config: RuntimeConfig): Promise<Response> {
+async function handleMarketStats(_request: Request, _config: RuntimeConfig): Promise<Response> {
   try {
     const stats = await getMarketStats();
     return sendSuccess(stats, 200);
@@ -757,7 +757,7 @@ async function handleMarketStats(request: Request, config: RuntimeConfig): Promi
   }
 }
 
-async function handleMarketGainers(request: Request, config: RuntimeConfig): Promise<Response> {
+async function handleMarketGainers(request: Request, _config: RuntimeConfig): Promise<Response> {
   try {
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get("limit") || "10", 10);
@@ -776,7 +776,7 @@ async function handleMarketGainers(request: Request, config: RuntimeConfig): Pro
   }
 }
 
-async function handleMarketLosers(request: Request, config: RuntimeConfig): Promise<Response> {
+async function handleMarketLosers(request: Request, _config: RuntimeConfig): Promise<Response> {
   try {
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get("limit") || "10", 10);
@@ -795,7 +795,7 @@ async function handleMarketLosers(request: Request, config: RuntimeConfig): Prom
   }
 }
 
-async function handleMarketWhales(request: Request, config: RuntimeConfig): Promise<Response> {
+async function handleMarketWhales(request: Request, _config: RuntimeConfig): Promise<Response> {
   try {
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get("limit") || "20", 10);
@@ -814,7 +814,7 @@ async function handleMarketWhales(request: Request, config: RuntimeConfig): Prom
   }
 }
 
-async function handleMarketNetflow(request: Request, config: RuntimeConfig): Promise<Response> {
+async function handleMarketNetflow(_request: Request, _config: RuntimeConfig): Promise<Response> {
   try {
     const netflow = await getHourlyNetflow();
     return sendSuccess(netflow, 200);
@@ -833,7 +833,7 @@ async function handleMarketNetflow(request: Request, config: RuntimeConfig): Pro
 
 // Tenero Pools Handlers
 
-async function handlePoolsTrending(request: Request, config: RuntimeConfig): Promise<Response> {
+async function handlePoolsTrending(request: Request, _config: RuntimeConfig): Promise<Response> {
   try {
     const url = new URL(request.url);
     const timeframe = (url.searchParams.get("timeframe") || "1d") as TrendingTimeframe;
@@ -855,7 +855,7 @@ async function handlePoolsTrending(request: Request, config: RuntimeConfig): Pro
   }
 }
 
-async function handlePoolsOhlc(request: Request, config: RuntimeConfig): Promise<Response> {
+async function handlePoolsOhlc(request: Request, _config: RuntimeConfig): Promise<Response> {
   const body = await parseJsonBody(request);
 
   if (body.error) {
@@ -893,7 +893,7 @@ async function handlePoolsOhlc(request: Request, config: RuntimeConfig): Promise
 
 // Tenero Tokens Handlers
 
-async function handleTokensSummary(request: Request, config: RuntimeConfig): Promise<Response> {
+async function handleTokensSummary(request: Request, _config: RuntimeConfig): Promise<Response> {
   const body = await parseJsonBody(request);
 
   if (body.error) {
@@ -921,7 +921,7 @@ async function handleTokensSummary(request: Request, config: RuntimeConfig): Pro
   }
 }
 
-async function handleTokensDetails(request: Request, config: RuntimeConfig): Promise<Response> {
+async function handleTokensDetails(request: Request, _config: RuntimeConfig): Promise<Response> {
   const body = await parseJsonBody(request);
 
   if (body.error) {

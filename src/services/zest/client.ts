@@ -2,7 +2,6 @@
 import { trackedFetch } from "../analytics.service";
 import { ZEST_ASSETS, ZestReserve, ZestMarketStats, ZestInterestRateModel } from "./types";
 
-const STACKS_API = "https://api.mainnet.hiro.so";
 const TENERO_API = "https://api.tenero.io/v1/stacks";
 
 export class ZestApiError extends Error {

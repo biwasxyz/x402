@@ -87,9 +87,6 @@ async function fetchSbtcWhaleTrades(
   return sbtcTrades.filter(trade => trade.block_time >= cutoffTime);
 }
 
-// Whale threshold: 0.1 BTC (10,000,000 sats)
-const WHALE_THRESHOLD_SATS = 10000000;
-
 function satsToBtc(sats: string | number): number {
   return Number(sats) / 100000000;
 }
