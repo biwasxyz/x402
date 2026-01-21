@@ -1,4 +1,5 @@
 // Hiro Stacks API client for BNS, NFT, and transfer data
+// Always uses mainnet for real data (payments use testnet for testing)
 import { trackedFetch } from "../analytics.service";
 import {
   BnsNameInfo,

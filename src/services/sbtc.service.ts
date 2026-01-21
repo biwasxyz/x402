@@ -1,11 +1,10 @@
 // sBTC Analytics Service - Whale Flows and Farming Opportunities
-import { trackedFetch } from "./analytics.service";
+// Always uses mainnet for real data (payments use testnet for testing)
 import { getOpenRouter } from "./openrouter.service";
 import { teneroFetch } from "./tenero/client";
-import { TrendingPool } from "./tenero/types";
+import { TrendingPool, TrendingPoolsResponse, WhaleTrade, WhaleTradesResponse } from "./tenero/types";
 
 const SBTC_CONTRACT = "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token";
-const HIRO_BASE_URL = "https://api.mainnet.hiro.so";
 
 // Result types
 export interface SbtcWhaleFlow {
@@ -62,48 +61,32 @@ export interface SbtcFarmingAnalysis {
   analysis: string;
 }
 
-// Fetch sBTC transfer events from Hiro API
-interface HiroSbtcEvent {
-  tx_id: string;
-  event_index: number;
-  event_type: string;
-  asset: {
-    asset_event_type: string;
-    asset_id: string;
-    sender: string;
-    recipient: string;
-    amount: string;
-  };
-  block_height: number;
-  block_time?: number;
-}
-
-interface HiroEventsResponse {
-  limit: number;
-  offset: number;
-  total: number;
-  results: HiroSbtcEvent[];
-}
-
-async function fetchSbtcTransferEvents(
+// Fetch sBTC-related whale trades from Tenero
+async function fetchSbtcWhaleTrades(
   hours: number = 24,
-  limit: number = 100
-): Promise<HiroSbtcEvent[]> {
-  const url = `${HIRO_BASE_URL}/extended/v1/tokens/ft/${SBTC_CONTRACT}/events?limit=${limit}`;
+  limit: number = 100 // Tenero API max is 100
+): Promise<WhaleTrade[]> {
+  // Fetch whale trades from Tenero (max limit is 100)
+  const validLimit = Math.min(limit, 100);
+  const response = await teneroFetch<WhaleTradesResponse>(
+    `/market/whale_trades?limit=${validLimit}`,
+    "stacks",
+    "/api/sbtc/whale-flows"
+  );
 
-  const response = await trackedFetch("/api/sbtc/whale-flows", url);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch sBTC events: ${response.statusText}`);
-  }
+  const trades = response.rows || [];
 
-  const data = await response.json() as HiroEventsResponse;
+  // Filter for sBTC-related trades (where sBTC is base or quote token)
+  const sbtcTrades = trades.filter(trade =>
+    trade.base_token?.symbol?.toLowerCase() === "sbtc" ||
+    trade.quote_token?.symbol?.toLowerCase() === "sbtc" ||
+    trade.base_token_address?.toLowerCase().includes("sbtc") ||
+    trade.quote_token_address?.toLowerCase().includes("sbtc")
+  );
 
-  // Filter by time if block_time is available
-  const cutoffTime = Date.now() - hours * 60 * 60 * 1000;
-  return (data.results || []).filter(event => {
-    if (!event.block_time) return true;
-    return event.block_time * 1000 >= cutoffTime;
-  });
+  // Filter by time
+  const cutoffTime = (Date.now() / 1000) - hours * 60 * 60;
+  return sbtcTrades.filter(trade => trade.block_time >= cutoffTime);
 }
 
 // Whale threshold: 0.1 BTC (10,000,000 sats)
@@ -117,44 +100,60 @@ export async function analyzeWhaleFlows(hours: number = 24): Promise<SbtcWhaleFl
   // Validate hours
   const validHours = Math.min(Math.max(hours, 1), 168); // 1 hour to 7 days
 
-  // Fetch sBTC transfer events
-  const events = await fetchSbtcTransferEvents(validHours, 200);
+  // Fetch sBTC whale trades from Tenero
+  const trades = await fetchSbtcWhaleTrades(validHours, 100);
 
-  // Process transfers
+  // Process trades into whale flows
   const transfers: SbtcWhaleFlow[] = [];
   let totalInflow = 0;
   let totalOutflow = 0;
   const uniqueAddresses = new Set<string>();
 
-  for (const event of events) {
-    if (event.asset?.asset_event_type !== "transfer") continue;
+  for (const trade of trades) {
+    // Get sBTC amount from the trade
+    // Note: Tenero returns amounts already in BTC (not satoshis)
+    let sbtcAmount = "0";
+    let sbtcAmountUsd = trade.amount_usd;
 
-    const amount = event.asset.amount || "0";
-    const amountNum = Number(amount);
-    const amountBtc = satsToBtc(amount);
-    const isWhale = amountNum >= WHALE_THRESHOLD_SATS;
+    // Determine if sBTC is base or quote token
+    const isSbtcBase = trade.base_token?.symbol?.toLowerCase() === "sbtc" ||
+      trade.base_token_address?.toLowerCase().includes("sbtc");
 
-    // Track unique whales
-    if (isWhale) {
-      uniqueAddresses.add(event.asset.sender);
-      uniqueAddresses.add(event.asset.recipient);
+    if (isSbtcBase) {
+      sbtcAmount = trade.base_token_amount || "0";
+    } else {
+      sbtcAmount = trade.quote_token_amount || "0";
     }
 
-    // Determine direction (simplified: any transfer counts as flow)
+    // Tenero returns amounts in BTC, not satoshis
+    const amountBtc = Number(sbtcAmount);
+    const isWhale = sbtcAmountUsd >= 10000 || amountBtc >= 0.1; // $10k+ or 0.1 BTC+
+
+    // Track unique addresses
+    if (isWhale) {
+      uniqueAddresses.add(trade.maker);
+      if (trade.recipient) uniqueAddresses.add(trade.recipient);
+    }
+
+    // Map trade to whale flow
     const flow: SbtcWhaleFlow = {
-      direction: "out", // From sender's perspective
-      amount,
+      direction: trade.event_type === "buy" ? "in" : "out",
+      amount: sbtcAmount,
       amountBtc,
-      sender: event.asset.sender,
-      recipient: event.asset.recipient,
-      txId: event.tx_id,
-      blockTime: event.block_time ? new Date(event.block_time * 1000).toISOString() : "unknown",
+      sender: trade.event_type === "sell" ? trade.maker : (trade.recipient || "pool"),
+      recipient: trade.event_type === "buy" ? trade.maker : (trade.recipient || "pool"),
+      txId: trade.tx_id,
+      blockTime: new Date(trade.block_time).toISOString(), // block_time is already in ms
       isWhale,
     };
 
     transfers.push(flow);
-    totalOutflow += amountBtc;
-    totalInflow += amountBtc; // Same amount flows in to recipient
+
+    if (trade.event_type === "buy") {
+      totalInflow += amountBtc;
+    } else {
+      totalOutflow += amountBtc;
+    }
   }
 
   // Filter whale transactions only
@@ -265,11 +264,13 @@ Respond in valid JSON format only:
 
 export async function scanFarmingOpportunities(userBalanceSats?: number): Promise<SbtcFarmingAnalysis> {
   // Fetch trending pools from Tenero to find sBTC pools
-  const trendingPools = await teneroFetch<TrendingPool[]>(
+  const poolsResponse = await teneroFetch<TrendingPoolsResponse>(
     "/pools?trending=1d&limit=50",
     "stacks",
     "/api/sbtc/farming-scanner"
   );
+
+  const trendingPools = poolsResponse.rows || [];
 
   // Filter for sBTC-related pools
   const sbtcPools = trendingPools.filter(pool =>

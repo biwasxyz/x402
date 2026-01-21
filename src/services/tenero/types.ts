@@ -171,6 +171,10 @@ export interface TrendingPool {
   price?: PoolPriceData;
 }
 
+export interface TrendingPoolsResponse {
+  rows: TrendingPool[];
+}
+
 export interface PoolOhlc {
   time: number;
   open: number;
