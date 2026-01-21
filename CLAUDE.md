@@ -30,6 +30,20 @@ Cloudflare Worker that implements the x402-stacks payment protocol for AI-powere
 - `/api/defi/portfolio-analyzer` (0.015 STX) - Combined Alex+Zest analysis
 - `/api/defi/strategy-builder` (0.02 STX) - AI DeFi strategy generation
 
+### BNS Domain Analytics (Paid)
+- `/api/bns/valuation` (0.005 STX) - AI domain name valuation
+- `/api/bns/portfolio` (0.008 STX) - BNS portfolio analysis
+
+### sBTC Analytics (Paid)
+- `/api/sbtc/whale-flows` (0.005 STX) - sBTC whale movement tracking
+- `/api/sbtc/farming-scanner` (0.008 STX) - sBTC yield farming opportunities
+
+### NFT Analytics (Paid)
+- `/api/nft/portfolio-valuation` (0.008 STX) - NFT portfolio valuation
+
+### Smart Money Tracking (Paid)
+- `/api/whale/smart-money` (0.015 STX) - Smart money/whale pattern analysis
+
 ### Free Endpoints
 - `/api/market/*` - Market stats, gainers, losers, whales, netflow
 - `/api/pools/*` - Trending pools, OHLC data
@@ -63,6 +77,11 @@ Environment variables (local or via `wrangler secret put`):
   - `zest.service.ts` - Zest lending/risk/yield analytics
   - `defi.service.ts` - Cross-protocol portfolio and strategy
   - `tenero/` - Tenero market data client
+  - `hiro/` - Hiro Stacks API client for BNS, NFT, transfers
+  - `bns.service.ts` - BNS domain valuation and portfolio analysis
+  - `sbtc.service.ts` - sBTC whale flows and farming scanner
+  - `nft.service.ts` - NFT portfolio valuation
+  - `whale.service.ts` - Smart money tracking
 - `src/utils/` - Payment verification and response helpers.
 - `scripts/` - Endpoint test probes (alex-*, zest-*, defi-*).
 
