@@ -2,9 +2,7 @@
 // Always uses mainnet for real data (payments use testnet for testing)
 import { getOpenRouter } from "./openrouter.service";
 import { teneroFetch } from "./tenero/client";
-import { TrendingPool, TrendingPoolsResponse, WhaleTrade, WhaleTradesResponse } from "./tenero/types";
-
-const SBTC_CONTRACT = "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token";
+import { TrendingPoolsResponse, WhaleTrade, WhaleTradesResponse } from "./tenero/types";
 
 // Result types
 export interface SbtcWhaleFlow {
