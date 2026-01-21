@@ -69,6 +69,27 @@ Paid endpoints return HTTP 402 with x402-stacks payment requirements when no pay
 | `/api/defi/portfolio-analyzer` | POST | 0.015 STX | Combined Alex LP + Zest lending analysis |
 | `/api/defi/strategy-builder` | POST | 0.02 STX | AI-generated DeFi strategy with execution plan |
 
+### BNS Domain Analytics (AI-Enhanced)
+
+| Endpoint | Method | Price | Description |
+|----------|--------|-------|-------------|
+| `/api/bns/valuation` | POST | 0.005 STX | AI domain name valuation with market comparisons |
+| `/api/bns/portfolio` | POST | 0.008 STX | BNS portfolio analysis with recommendations |
+
+### sBTC Analytics (AI-Enhanced)
+
+| Endpoint | Method | Price | Description |
+|----------|--------|-------|-------------|
+| `/api/sbtc/whale-flows` | GET | 0.005 STX | sBTC whale movement tracking with sentiment |
+| `/api/sbtc/farming-scanner` | POST | 0.008 STX | sBTC yield farming opportunities scanner |
+
+### NFT & Smart Money Analytics (AI-Enhanced)
+
+| Endpoint | Method | Price | Description |
+|----------|--------|-------|-------------|
+| `/api/nft/portfolio-valuation` | POST | 0.008 STX | NFT portfolio valuation with collection analysis |
+| `/api/whale/smart-money` | GET | 0.015 STX | Smart money tracking and pattern analysis |
+
 ### Free Endpoints
 
 | Endpoint | Method | Description |
@@ -158,6 +179,27 @@ bun run scripts/defi-portfolio-analyzer.ts <address>
 bun run scripts/defi-strategy-builder.ts <capitalUsd> <riskTolerance> <timeHorizon>
 ```
 
+#### BNS Domain Analytics (AI-Enhanced)
+
+```bash
+bun run scripts/bns-valuation.ts <name>
+bun run scripts/bns-portfolio.ts <address>
+```
+
+#### sBTC Analytics (AI-Enhanced)
+
+```bash
+bun run scripts/sbtc-whale-flows.ts [hours]
+bun run scripts/sbtc-farming-scanner.ts [balanceSats]
+```
+
+#### NFT & Smart Money Analytics (AI-Enhanced)
+
+```bash
+bun run scripts/nft-portfolio-valuation.ts <address>
+bun run scripts/whale-smart-money.ts [limit]
+```
+
 ### Example Addresses/IDs
 
 ```bash
@@ -219,7 +261,14 @@ src/
     │   ├── client.ts              # Zest Protocol API client
     │   └── types.ts               # Zest type definitions
     ├── zest.service.ts            # Zest lending analytics (risk, yield, rates)
-    └── defi.service.ts            # Cross-protocol DeFi intelligence
+    ├── defi.service.ts            # Cross-protocol DeFi intelligence
+    ├── hiro/
+    │   ├── client.ts              # Hiro Stacks API client
+    │   └── types.ts               # Hiro type definitions
+    ├── bns.service.ts             # BNS domain valuation and portfolio
+    ├── sbtc.service.ts            # sBTC whale flows and farming scanner
+    ├── nft.service.ts             # NFT portfolio valuation
+    └── whale.service.ts           # Smart money tracking
 
 scripts/
 ├── news.ts, audit.ts, etc.        # Original endpoint probes
@@ -229,7 +278,11 @@ scripts/
 ├── wallet-*.ts                    # Wallet analytics probes
 ├── alex-*.ts                      # Alex DEX analytics probes
 ├── zest-*.ts                      # Zest lending analytics probes
-└── defi-*.ts                      # Cross-protocol DeFi probes
+├── defi-*.ts                      # Cross-protocol DeFi probes
+├── bns-*.ts                       # BNS domain analytics probes
+├── sbtc-*.ts                      # sBTC analytics probes
+├── nft-*.ts                       # NFT analytics probes
+└── whale-*.ts                     # Smart money tracking probes
 ```
 
 ## Data Sources

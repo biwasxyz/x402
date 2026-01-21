@@ -265,7 +265,7 @@ export async function buildStrategy(request: StrategyBuilderRequest): Promise<St
 function analyzeAlexPositions(
   positions: AlexLpPosition[],
   pools: AlexPoolData[],
-  prices: Map<string, number>
+  _prices: Map<string, number>
 ): AlexPortfolioAnalysis {
   const positionDetails: AlexPositionDetail[] = [];
   let totalLpValueUsd = 0;
@@ -449,7 +449,7 @@ function generateStrategy(
   preferences: { preferredAssets?: string[]; avoidAssets?: string[]; maxLeverage?: number },
   pools: AlexPoolData[],
   reserves: ZestReserve[],
-  prices: Map<string, number>
+  _prices: Map<string, number>
 ): DeFiStrategy {
   const allocations: StrategyAllocation[] = [];
   let totalExpectedYield = 0;
@@ -513,7 +513,6 @@ function generateStrategy(
 
     // Leverage if risk tolerance allows
     if (riskParams.leverageMultiplier > 0 && topReserve.ltv > 0) {
-      const maxLeverage = preferences.maxLeverage || (risk === "aggressive" ? 2 : 1.5);
       const borrowAmount = supplyCapital * topReserve.ltv * riskParams.leverageMultiplier;
       const borrowApy = topReserve.borrow_apy * 100;
 

@@ -574,6 +574,195 @@
           "risks": "array"
         }
       }
+    },
+    {
+      "scheme": "exact",
+      "network": "stacks",
+      "maxAmountRequired": "5000",
+      "resource": "/api/bns/valuation",
+      "description": "AI valuation for BNS domain names with market comparisons and rarity analysis",
+      "mimeType": "application/json",
+      "payTo": "${SERVER_ADDRESS}",
+      "maxTimeoutSeconds": 60,
+      "asset": "STX",
+      "outputSchema": {
+        "input": {
+          "type": "http",
+          "method": "POST",
+          "bodyType": "json",
+          "bodyFields": {
+            "name": {
+              "type": "string",
+              "required": true,
+              "description": "BNS domain name to valuate (e.g., 'alice.btc')"
+            }
+          }
+        },
+        "output": {
+          "name": "string",
+          "estimatedValue": "object",
+          "category": "string",
+          "rarity": "string",
+          "analysis": "string"
+        }
+      }
+    },
+    {
+      "scheme": "exact",
+      "network": "stacks",
+      "maxAmountRequired": "8000",
+      "resource": "/api/bns/portfolio",
+      "description": "AI analysis of BNS domain portfolio with valuation and recommendations",
+      "mimeType": "application/json",
+      "payTo": "${SERVER_ADDRESS}",
+      "maxTimeoutSeconds": 60,
+      "asset": "STX",
+      "outputSchema": {
+        "input": {
+          "type": "http",
+          "method": "POST",
+          "bodyType": "json",
+          "bodyFields": {
+            "address": {
+              "type": "string",
+              "required": true,
+              "description": "Stacks address to analyze BNS holdings"
+            }
+          }
+        },
+        "output": {
+          "totalValue": "object",
+          "domains": "array",
+          "recommendations": "array",
+          "analysis": "string"
+        }
+      }
+    },
+    {
+      "scheme": "exact",
+      "network": "stacks",
+      "maxAmountRequired": "5000",
+      "resource": "/api/sbtc/whale-flows",
+      "description": "Track sBTC whale movements with sentiment analysis",
+      "mimeType": "application/json",
+      "payTo": "${SERVER_ADDRESS}",
+      "maxTimeoutSeconds": 60,
+      "asset": "STX",
+      "outputSchema": {
+        "input": {
+          "type": "http",
+          "method": "GET",
+          "queryParams": {
+            "hours": {
+              "type": "number",
+              "required": false,
+              "description": "Hours to analyze (default: 24, max: 168)"
+            }
+          }
+        },
+        "output": {
+          "timeframe": "string",
+          "totalInflow": "number",
+          "totalOutflow": "number",
+          "whaleTransactions": "array",
+          "sentiment": "string",
+          "analysis": "string"
+        }
+      }
+    },
+    {
+      "scheme": "exact",
+      "network": "stacks",
+      "maxAmountRequired": "8000",
+      "resource": "/api/sbtc/farming-scanner",
+      "description": "Scan sBTC yield farming opportunities with AI recommendations",
+      "mimeType": "application/json",
+      "payTo": "${SERVER_ADDRESS}",
+      "maxTimeoutSeconds": 90,
+      "asset": "STX",
+      "outputSchema": {
+        "input": {
+          "type": "http",
+          "method": "POST",
+          "bodyType": "json",
+          "bodyFields": {
+            "balanceSats": {
+              "type": "number",
+              "required": false,
+              "description": "User's sBTC balance in satoshis for projected returns"
+            }
+          }
+        },
+        "output": {
+          "userBalance": "number",
+          "opportunities": "array",
+          "recommendation": "object",
+          "projectedReturns": "object",
+          "analysis": "string"
+        }
+      }
+    },
+    {
+      "scheme": "exact",
+      "network": "stacks",
+      "maxAmountRequired": "8000",
+      "resource": "/api/nft/portfolio-valuation",
+      "description": "AI valuation of NFT portfolio with collection analysis",
+      "mimeType": "application/json",
+      "payTo": "${SERVER_ADDRESS}",
+      "maxTimeoutSeconds": 60,
+      "asset": "STX",
+      "outputSchema": {
+        "input": {
+          "type": "http",
+          "method": "POST",
+          "bodyType": "json",
+          "bodyFields": {
+            "address": {
+              "type": "string",
+              "required": true,
+              "description": "Stacks address to analyze NFT holdings"
+            }
+          }
+        },
+        "output": {
+          "totalValue": "object",
+          "holdings": "array",
+          "collections": "array",
+          "recommendations": "array",
+          "analysis": "string"
+        }
+      }
+    },
+    {
+      "scheme": "exact",
+      "network": "stacks",
+      "maxAmountRequired": "15000",
+      "resource": "/api/whale/smart-money",
+      "description": "Track smart money movements and whale patterns with AI labeling",
+      "mimeType": "application/json",
+      "payTo": "${SERVER_ADDRESS}",
+      "maxTimeoutSeconds": 60,
+      "asset": "STX",
+      "outputSchema": {
+        "input": {
+          "type": "http",
+          "method": "GET",
+          "queryParams": {
+            "limit": {
+              "type": "number",
+              "required": false,
+              "description": "Number of whale trades to analyze (default: 20, max: 100)"
+            }
+          }
+        },
+        "output": {
+          "whales": "array",
+          "patterns": "object",
+          "marketImpact": "object",
+          "analysis": "string"
+        }
+      }
     }
   ]
 }

@@ -21,7 +21,7 @@ import { getTrendingPools, getPoolOhlc } from "./services/tenero-pools.service";
 import { getTokenSummary, getTokenDetails } from "./services/tenero-tokens.service";
 import { TrendingTimeframe } from "./services/tenero/types";
 import { analyzeWalletTrading, analyzeWalletPnl } from "./services/tenero-wallets.service";
-import { getWorkerAnalytics, getSubrequestStats, trackEndpointKV, getEndpointStatsKV } from "./services/analytics.service";
+import { getWorkerAnalytics, trackEndpointKV, getEndpointStatsKV } from "./services/analytics.service";
 import { ANALYTICS_HTML } from "./analytics-page";
 // Alex Lab services
 import {
@@ -41,6 +41,12 @@ import {
 import { ZestApiError } from "./services/zest/client";
 // Cross-protocol DeFi services
 import { analyzePortfolio, buildStrategy } from "./services/defi.service";
+// BNS, sBTC, NFT, and Whale services
+import { valuateBnsName, analyzeBnsPortfolio } from "./services/bns.service";
+import { analyzeWhaleFlows, scanFarmingOpportunities } from "./services/sbtc.service";
+import { valuateNftPortfolio } from "./services/nft.service";
+import { trackSmartMoney } from "./services/whale.service";
+import { HiroApiError } from "./services/hiro/client";
 
 
 type Env = EnvBindings & Record<string, string | KVNamespace | undefined>;
@@ -66,6 +72,13 @@ const OPENROUTER_ENDPOINTS = new Set([
   // Cross-protocol DeFi endpoints
   "/api/defi/portfolio-analyzer",
   "/api/defi/strategy-builder",
+  // BNS, sBTC, NFT, and Whale endpoints
+  "/api/bns/valuation",
+  "/api/bns/portfolio",
+  "/api/sbtc/whale-flows",
+  "/api/sbtc/farming-scanner",
+  "/api/nft/portfolio-valuation",
+  "/api/whale/smart-money",
 ]);
 
 // x402-stacks Endpoint Configurations (prices in token units)
@@ -249,6 +262,52 @@ const ENDPOINTS: Record<string, EndpointConfig> = {
     method: "POST",
     paymentRequired: true,
     amount: 0.02,
+  },
+  // BNS Endpoints
+  "/api/bns/valuation": {
+    resource: "/api/bns/valuation",
+    description: "AI valuation for BNS domain names with market analysis",
+    method: "POST",
+    paymentRequired: true,
+    amount: 0.005,
+  },
+  "/api/bns/portfolio": {
+    resource: "/api/bns/portfolio",
+    description: "AI portfolio analysis for BNS domain holdings",
+    method: "POST",
+    paymentRequired: true,
+    amount: 0.008,
+  },
+  // sBTC Endpoints
+  "/api/sbtc/whale-flows": {
+    resource: "/api/sbtc/whale-flows",
+    description: "sBTC whale movement tracking and sentiment analysis",
+    method: "GET",
+    paymentRequired: true,
+    amount: 0.005,
+  },
+  "/api/sbtc/farming-scanner": {
+    resource: "/api/sbtc/farming-scanner",
+    description: "sBTC yield farming opportunity scanner with AI recommendations",
+    method: "POST",
+    paymentRequired: true,
+    amount: 0.008,
+  },
+  // NFT Endpoint
+  "/api/nft/portfolio-valuation": {
+    resource: "/api/nft/portfolio-valuation",
+    description: "AI-powered NFT portfolio valuation with collection analysis",
+    method: "POST",
+    paymentRequired: true,
+    amount: 0.008,
+  },
+  // Whale/Smart Money Endpoint
+  "/api/whale/smart-money": {
+    resource: "/api/whale/smart-money",
+    description: "Smart money tracking - AI analysis of whale trading patterns",
+    method: "GET",
+    paymentRequired: true,
+    amount: 0.015,
   },
 };
 
@@ -498,6 +557,34 @@ async function handleRequest(request: Request, env: Env, url: URL, method: strin
       return handleDefiStrategyBuilder(request, config);
     }
 
+    // BNS Endpoints
+    if (method === "POST" && url.pathname === "/api/bns/valuation") {
+      return handleBnsValuation(request, config);
+    }
+
+    if (method === "POST" && url.pathname === "/api/bns/portfolio") {
+      return handleBnsPortfolio(request, config);
+    }
+
+    // sBTC Endpoints
+    if (method === "GET" && url.pathname === "/api/sbtc/whale-flows") {
+      return handleSbtcWhaleFlows(request, config);
+    }
+
+    if (method === "POST" && url.pathname === "/api/sbtc/farming-scanner") {
+      return handleSbtcFarmingScanner(request, config);
+    }
+
+    // NFT Endpoint
+    if (method === "POST" && url.pathname === "/api/nft/portfolio-valuation") {
+      return handleNftPortfolioValuation(request, config);
+    }
+
+    // Whale/Smart Money Endpoint
+    if (method === "GET" && url.pathname === "/api/whale/smart-money") {
+      return handleWhaleSmartMoney(request, config);
+    }
+
     return sendError("Not Found", 404, "NOT_FOUND");
 }
 
@@ -653,7 +740,7 @@ async function handleSentiment(request: Request, config: RuntimeConfig): Promise
 
 // Tenero Market Handlers
 
-async function handleMarketStats(request: Request, config: RuntimeConfig): Promise<Response> {
+async function handleMarketStats(_request: Request, _config: RuntimeConfig): Promise<Response> {
   try {
     const stats = await getMarketStats();
     return sendSuccess(stats, 200);
@@ -670,7 +757,7 @@ async function handleMarketStats(request: Request, config: RuntimeConfig): Promi
   }
 }
 
-async function handleMarketGainers(request: Request, config: RuntimeConfig): Promise<Response> {
+async function handleMarketGainers(request: Request, _config: RuntimeConfig): Promise<Response> {
   try {
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get("limit") || "10", 10);
@@ -689,7 +776,7 @@ async function handleMarketGainers(request: Request, config: RuntimeConfig): Pro
   }
 }
 
-async function handleMarketLosers(request: Request, config: RuntimeConfig): Promise<Response> {
+async function handleMarketLosers(request: Request, _config: RuntimeConfig): Promise<Response> {
   try {
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get("limit") || "10", 10);
@@ -708,7 +795,7 @@ async function handleMarketLosers(request: Request, config: RuntimeConfig): Prom
   }
 }
 
-async function handleMarketWhales(request: Request, config: RuntimeConfig): Promise<Response> {
+async function handleMarketWhales(request: Request, _config: RuntimeConfig): Promise<Response> {
   try {
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get("limit") || "20", 10);
@@ -727,7 +814,7 @@ async function handleMarketWhales(request: Request, config: RuntimeConfig): Prom
   }
 }
 
-async function handleMarketNetflow(request: Request, config: RuntimeConfig): Promise<Response> {
+async function handleMarketNetflow(_request: Request, _config: RuntimeConfig): Promise<Response> {
   try {
     const netflow = await getHourlyNetflow();
     return sendSuccess(netflow, 200);
@@ -746,7 +833,7 @@ async function handleMarketNetflow(request: Request, config: RuntimeConfig): Pro
 
 // Tenero Pools Handlers
 
-async function handlePoolsTrending(request: Request, config: RuntimeConfig): Promise<Response> {
+async function handlePoolsTrending(request: Request, _config: RuntimeConfig): Promise<Response> {
   try {
     const url = new URL(request.url);
     const timeframe = (url.searchParams.get("timeframe") || "1d") as TrendingTimeframe;
@@ -768,7 +855,7 @@ async function handlePoolsTrending(request: Request, config: RuntimeConfig): Pro
   }
 }
 
-async function handlePoolsOhlc(request: Request, config: RuntimeConfig): Promise<Response> {
+async function handlePoolsOhlc(request: Request, _config: RuntimeConfig): Promise<Response> {
   const body = await parseJsonBody(request);
 
   if (body.error) {
@@ -806,7 +893,7 @@ async function handlePoolsOhlc(request: Request, config: RuntimeConfig): Promise
 
 // Tenero Tokens Handlers
 
-async function handleTokensSummary(request: Request, config: RuntimeConfig): Promise<Response> {
+async function handleTokensSummary(request: Request, _config: RuntimeConfig): Promise<Response> {
   const body = await parseJsonBody(request);
 
   if (body.error) {
@@ -834,7 +921,7 @@ async function handleTokensSummary(request: Request, config: RuntimeConfig): Pro
   }
 }
 
-async function handleTokensDetails(request: Request, config: RuntimeConfig): Promise<Response> {
+async function handleTokensDetails(request: Request, _config: RuntimeConfig): Promise<Response> {
   const body = await parseJsonBody(request);
 
   if (body.error) {
@@ -1339,6 +1426,201 @@ async function handleDefiStrategyBuilder(request: Request, config: RuntimeConfig
   }
 }
 
+// BNS Handlers
+
+async function handleBnsValuation(request: Request, config: RuntimeConfig): Promise<Response> {
+  const endpointConfig = ENDPOINTS["/api/bns/valuation"];
+  const body = await parseJsonBody(request);
+
+  if (body.error) {
+    return body.error;
+  }
+
+  try {
+    const paymentResult = await requirePayment(request, config, endpointConfig);
+    if (!paymentResult.ok) {
+      return (paymentResult as PaymentFailure).response;
+    }
+
+    const { name } = body.data as { name?: string };
+    if (!name) {
+      return sendError("name is required", 400, "MISSING_FIELD");
+    }
+
+    const result = await valuateBnsName(name);
+    return sendSuccess(result, 200, paymentResult.settlement);
+  } catch (error) {
+    console.error("BNS valuation error:", error);
+    if (error instanceof HiroApiError) {
+      return sendError(`Hiro API unavailable: ${error.message}`, 502, "HIRO_API_ERROR");
+    }
+    return sendError(
+      error instanceof Error ? error.message : "Failed to valuate BNS name",
+      500,
+      "BNS_VALUATION_ERROR"
+    );
+  }
+}
+
+async function handleBnsPortfolio(request: Request, config: RuntimeConfig): Promise<Response> {
+  const endpointConfig = ENDPOINTS["/api/bns/portfolio"];
+  const body = await parseJsonBody(request);
+
+  if (body.error) {
+    return body.error;
+  }
+
+  try {
+    const paymentResult = await requirePayment(request, config, endpointConfig);
+    if (!paymentResult.ok) {
+      return (paymentResult as PaymentFailure).response;
+    }
+
+    const { address } = body.data as { address?: string };
+    if (!address) {
+      return sendError("address is required", 400, "MISSING_FIELD");
+    }
+
+    const result = await analyzeBnsPortfolio(address);
+    return sendSuccess(result, 200, paymentResult.settlement);
+  } catch (error) {
+    console.error("BNS portfolio error:", error);
+    if (error instanceof HiroApiError) {
+      return sendError(`Hiro API unavailable: ${error.message}`, 502, "HIRO_API_ERROR");
+    }
+    return sendError(
+      error instanceof Error ? error.message : "Failed to analyze BNS portfolio",
+      500,
+      "BNS_PORTFOLIO_ERROR"
+    );
+  }
+}
+
+// sBTC Handlers
+
+async function handleSbtcWhaleFlows(request: Request, config: RuntimeConfig): Promise<Response> {
+  const endpointConfig = ENDPOINTS["/api/sbtc/whale-flows"];
+
+  try {
+    const paymentResult = await requirePayment(request, config, endpointConfig);
+    if (!paymentResult.ok) {
+      return (paymentResult as PaymentFailure).response;
+    }
+
+    const url = new URL(request.url);
+    const hours = parseInt(url.searchParams.get("hours") || "24", 10);
+
+    const result = await analyzeWhaleFlows(hours);
+    return sendSuccess(result, 200, paymentResult.settlement);
+  } catch (error) {
+    console.error("sBTC whale flows error:", error);
+    if (error instanceof HiroApiError) {
+      return sendError(`Hiro API unavailable: ${error.message}`, 502, "HIRO_API_ERROR");
+    }
+    return sendError(
+      error instanceof Error ? error.message : "Failed to analyze whale flows",
+      500,
+      "SBTC_WHALE_FLOWS_ERROR"
+    );
+  }
+}
+
+async function handleSbtcFarmingScanner(request: Request, config: RuntimeConfig): Promise<Response> {
+  const endpointConfig = ENDPOINTS["/api/sbtc/farming-scanner"];
+  const body = await parseJsonBody(request);
+
+  if (body.error) {
+    return body.error;
+  }
+
+  try {
+    const paymentResult = await requirePayment(request, config, endpointConfig);
+    if (!paymentResult.ok) {
+      return (paymentResult as PaymentFailure).response;
+    }
+
+    const { balance } = body.data as { balance?: number };
+
+    const result = await scanFarmingOpportunities(balance);
+    return sendSuccess(result, 200, paymentResult.settlement);
+  } catch (error) {
+    console.error("sBTC farming scanner error:", error);
+    if (error instanceof TeneroApiError) {
+      return sendError(`Tenero API unavailable: ${error.message}`, 502, "TENERO_API_ERROR");
+    }
+    return sendError(
+      error instanceof Error ? error.message : "Failed to scan farming opportunities",
+      500,
+      "SBTC_FARMING_ERROR"
+    );
+  }
+}
+
+// NFT Handler
+
+async function handleNftPortfolioValuation(request: Request, config: RuntimeConfig): Promise<Response> {
+  const endpointConfig = ENDPOINTS["/api/nft/portfolio-valuation"];
+  const body = await parseJsonBody(request);
+
+  if (body.error) {
+    return body.error;
+  }
+
+  try {
+    const paymentResult = await requirePayment(request, config, endpointConfig);
+    if (!paymentResult.ok) {
+      return (paymentResult as PaymentFailure).response;
+    }
+
+    const { address } = body.data as { address?: string };
+    if (!address) {
+      return sendError("address is required", 400, "MISSING_FIELD");
+    }
+
+    const result = await valuateNftPortfolio(address);
+    return sendSuccess(result, 200, paymentResult.settlement);
+  } catch (error) {
+    console.error("NFT portfolio valuation error:", error);
+    if (error instanceof HiroApiError) {
+      return sendError(`Hiro API unavailable: ${error.message}`, 502, "HIRO_API_ERROR");
+    }
+    return sendError(
+      error instanceof Error ? error.message : "Failed to valuate NFT portfolio",
+      500,
+      "NFT_PORTFOLIO_ERROR"
+    );
+  }
+}
+
+// Whale/Smart Money Handler
+
+async function handleWhaleSmartMoney(request: Request, config: RuntimeConfig): Promise<Response> {
+  const endpointConfig = ENDPOINTS["/api/whale/smart-money"];
+
+  try {
+    const paymentResult = await requirePayment(request, config, endpointConfig);
+    if (!paymentResult.ok) {
+      return (paymentResult as PaymentFailure).response;
+    }
+
+    const url = new URL(request.url);
+    const limit = parseInt(url.searchParams.get("limit") || "100", 10);
+
+    const result = await trackSmartMoney(limit);
+    return sendSuccess(result, 200, paymentResult.settlement);
+  } catch (error) {
+    console.error("Smart money tracking error:", error);
+    if (error instanceof TeneroApiError) {
+      return sendError(`Tenero API unavailable: ${error.message}`, 502, "TENERO_API_ERROR");
+    }
+    return sendError(
+      error instanceof Error ? error.message : "Failed to track smart money",
+      500,
+      "SMART_MONEY_ERROR"
+    );
+  }
+}
+
 function serveX402Manifest(env: Env): Response {
   const serverAddress = env.SERVER_ADDRESS || "YOUR_STACKS_ADDRESS";
 
@@ -1707,6 +1989,140 @@ function serveX402Manifest(env: Env): Response {
             }
           },
           output: { strategy: "object", allocations: "array", executionPlan: "array", expectedReturns: "object", risks: "array" }
+        }
+      },
+      // BNS Endpoints
+      {
+        scheme: "exact",
+        network: "stacks",
+        maxAmountRequired: "5000",
+        resource: "/api/bns/valuation",
+        description: "AI valuation for BNS domain names with market analysis",
+        mimeType: "application/json",
+        payTo: serverAddress,
+        maxTimeoutSeconds: 60,
+        asset: "STX",
+        outputSchema: {
+          input: {
+            type: "http",
+            method: "POST",
+            bodyType: "json",
+            bodyFields: {
+              name: { type: "string", required: true, description: "BNS domain name to valuate (e.g., 'alice' or 'alice.btc')" }
+            }
+          },
+          output: { name: "string", estimatedValue: "object", factors: "object", comparables: "array", analysis: "string", confidence: "number" }
+        }
+      },
+      {
+        scheme: "exact",
+        network: "stacks",
+        maxAmountRequired: "8000",
+        resource: "/api/bns/portfolio",
+        description: "AI portfolio analysis for BNS domain holdings",
+        mimeType: "application/json",
+        payTo: serverAddress,
+        maxTimeoutSeconds: 60,
+        asset: "STX",
+        outputSchema: {
+          input: {
+            type: "http",
+            method: "POST",
+            bodyType: "json",
+            bodyFields: {
+              address: { type: "string", required: true, description: "Stacks wallet address to analyze BNS holdings" }
+            }
+          },
+          output: { address: "string", totalNames: "number", estimatedPortfolioValue: "object", names: "array", insights: "array", recommendation: "string" }
+        }
+      },
+      // sBTC Endpoints
+      {
+        scheme: "exact",
+        network: "stacks",
+        maxAmountRequired: "5000",
+        resource: "/api/sbtc/whale-flows",
+        description: "sBTC whale movement tracking and sentiment analysis",
+        mimeType: "application/json",
+        payTo: serverAddress,
+        maxTimeoutSeconds: 60,
+        asset: "STX",
+        outputSchema: {
+          input: {
+            type: "http",
+            method: "GET",
+            queryParams: {
+              hours: { type: "number", required: false, description: "Lookback period in hours (default: 24, max: 168)" }
+            }
+          },
+          output: { timeframe: "string", totalInflow: "number", totalOutflow: "number", netFlow: "number", whaleTransactions: "array", summary: "object", sentiment: "string", analysis: "string" }
+        }
+      },
+      {
+        scheme: "exact",
+        network: "stacks",
+        maxAmountRequired: "8000",
+        resource: "/api/sbtc/farming-scanner",
+        description: "sBTC yield farming opportunity scanner with AI recommendations",
+        mimeType: "application/json",
+        payTo: serverAddress,
+        maxTimeoutSeconds: 60,
+        asset: "STX",
+        outputSchema: {
+          input: {
+            type: "http",
+            method: "POST",
+            bodyType: "json",
+            bodyFields: {
+              balance: { type: "number", required: false, description: "User's sBTC balance in satoshis for personalized projections" }
+            }
+          },
+          output: { userBalance: "number", opportunities: "array", recommendation: "object", projectedReturns: "object", analysis: "string" }
+        }
+      },
+      // NFT Endpoint
+      {
+        scheme: "exact",
+        network: "stacks",
+        maxAmountRequired: "8000",
+        resource: "/api/nft/portfolio-valuation",
+        description: "AI-powered NFT portfolio valuation with collection analysis",
+        mimeType: "application/json",
+        payTo: serverAddress,
+        maxTimeoutSeconds: 60,
+        asset: "STX",
+        outputSchema: {
+          input: {
+            type: "http",
+            method: "POST",
+            bodyType: "json",
+            bodyFields: {
+              address: { type: "string", required: true, description: "Stacks wallet address to valuate NFT holdings" }
+            }
+          },
+          output: { address: "string", totalNfts: "number", totalCollections: "number", estimatedTotalValue: "object", collections: "array", topHoldings: "array", insights: "array", recommendation: "string" }
+        }
+      },
+      // Whale/Smart Money Endpoint
+      {
+        scheme: "exact",
+        network: "stacks",
+        maxAmountRequired: "15000",
+        resource: "/api/whale/smart-money",
+        description: "Smart money tracking - AI analysis of whale trading patterns",
+        mimeType: "application/json",
+        payTo: serverAddress,
+        maxTimeoutSeconds: 90,
+        asset: "STX",
+        outputSchema: {
+          input: {
+            type: "http",
+            method: "GET",
+            queryParams: {
+              limit: { type: "number", required: false, description: "Number of whale transactions to analyze (default: 100, max: 200)" }
+            }
+          },
+          output: { timeframe: "string", totalWhaleTransactions: "number", totalVolumeUsd: "number", smartMoneyWallets: "array", marketSignals: "object", insights: "array", tradingRecommendation: "string" }
         }
       }
     ]
