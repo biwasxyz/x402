@@ -8,23 +8,18 @@ export const ANALYTICS_HTML = `<!DOCTYPE html>
   <title>x402-api Worker Analytics</title>
   <style>
     :root {
-      --bg-primary: #0f172a;
-      --bg-secondary: #1e293b;
-      --bg-tertiary: #334155;
-      --text-primary: #f1f5f9;
-      --text-secondary: #94a3b8;
-      --accent-blue: #3b82f6;
-      --accent-green: #22c55e;
-      --accent-red: #ef4444;
-      --accent-yellow: #eab308;
-      --accent-purple: #a855f7;
-      --border-color: #475569;
+      --bg-primary: #000;
+      --bg-secondary: #0a0a0a;
+      --bg-tertiary: #111;
+      --text-primary: #fafafa;
+      --text-secondary: #888;
+      --border-color: #333;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: var(--bg-primary);
       color: var(--text-primary);
       min-height: 100vh;
@@ -45,7 +40,7 @@ export const ANALYTICS_HTML = `<!DOCTYPE html>
     }
 
     h1 { font-size: 24px; font-weight: 600; }
-    .worker-name { color: var(--accent-blue); }
+    .worker-name { color: #fff; }
 
     .controls {
       display: flex;
@@ -66,19 +61,18 @@ export const ANALYTICS_HTML = `<!DOCTYPE html>
     }
 
     .controls button {
-      background: var(--accent-blue);
-      color: white;
+      background: #fff;
+      color: #000;
       border: none;
       padding: 8px 16px;
       border-radius: 6px;
       cursor: pointer;
       font-size: 14px;
       font-weight: 500;
-      transition: background 0.2s;
     }
 
-    .controls button:hover { background: #2563eb; }
-    .controls button:disabled { background: var(--bg-tertiary); cursor: not-allowed; }
+    .controls button:hover { background: #eee; }
+    .controls button:disabled { background: var(--bg-tertiary); color: #666; cursor: not-allowed; }
 
     .status-bar {
       background: var(--bg-secondary);
@@ -90,6 +84,7 @@ export const ANALYTICS_HTML = `<!DOCTYPE html>
       align-items: center;
       flex-wrap: wrap;
       gap: 8px;
+      border: 1px solid var(--border-color);
     }
 
     .status-bar .status { display: flex; align-items: center; gap: 8px; }
@@ -98,13 +93,13 @@ export const ANALYTICS_HTML = `<!DOCTYPE html>
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: var(--accent-green);
+      background: #fff;
     }
 
-    .status-dot.loading { background: var(--accent-yellow); animation: pulse 1s infinite; }
-    .status-dot.error { background: var(--accent-red); }
+    .status-dot.loading { background: #888; animation: pulse 1s infinite; }
+    .status-dot.error { background: #ff0000; }
 
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
     .grid {
       display: grid;
@@ -115,7 +110,7 @@ export const ANALYTICS_HTML = `<!DOCTYPE html>
 
     .metric-card {
       background: var(--bg-secondary);
-      border-radius: 12px;
+      border-radius: 8px;
       padding: 20px;
       border: 1px solid var(--border-color);
     }
@@ -130,39 +125,29 @@ export const ANALYTICS_HTML = `<!DOCTYPE html>
 
     .metric-card .value {
       font-size: 24px;
-      font-weight: 700;
+      font-weight: 600;
       color: var(--text-primary);
     }
 
-    .metric-card .value.error { color: var(--accent-red); }
-    .metric-card .value.success { color: var(--accent-green); }
+    .metric-card .value.error { color: #ff6666; }
+    .metric-card .value.success { color: #fff; }
     .metric-card .subvalue { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
 
     .section {
       background: var(--bg-secondary);
-      border-radius: 12px;
+      border-radius: 8px;
       padding: 20px;
       margin-bottom: 24px;
       border: 1px solid var(--border-color);
     }
 
     .section h2 {
-      font-size: 16px;
-      font-weight: 600;
+      font-size: 14px;
+      font-weight: 500;
       margin-bottom: 16px;
-      color: var(--text-primary);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .section h2::before {
-      content: '';
-      display: block;
-      width: 4px;
-      height: 16px;
-      background: var(--accent-blue);
-      border-radius: 2px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     table { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -174,30 +159,27 @@ export const ANALYTICS_HTML = `<!DOCTYPE html>
       text-transform: uppercase;
       font-size: 11px;
       letter-spacing: 0.5px;
-      background: var(--bg-tertiary);
     }
 
-    th:first-child { border-radius: 6px 0 0 0; }
-    th:last-child { border-radius: 0 6px 0 0; }
     tr:last-child td { border-bottom: none; }
-    tr:hover td { background: rgba(59, 130, 246, 0.05); }
+    tr:hover td { background: var(--bg-tertiary); }
     td { color: var(--text-primary); }
 
-    .mono { font-family: 'SF Mono', 'Consolas', 'Monaco', monospace; font-size: 13px; }
+    .mono { font-family: 'SF Mono', Consolas, monospace; font-size: 13px; }
 
     .badge {
       display: inline-block;
       padding: 4px 8px;
       border-radius: 4px;
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 500;
       text-transform: uppercase;
     }
 
-    .badge.success { background: rgba(34, 197, 94, 0.2); color: var(--accent-green); }
-    .badge.error { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
-    .badge.warning { background: rgba(234, 179, 8, 0.2); color: var(--accent-yellow); }
-    .badge.info { background: rgba(59, 130, 246, 0.2); color: var(--accent-blue); }
+    .badge.success { background: #111; color: #fff; border: 1px solid #333; }
+    .badge.error { background: #1a0000; color: #ff6666; border: 1px solid #330000; }
+    .badge.warning { background: #1a1a00; color: #ffcc00; border: 1px solid #333300; }
+    .badge.info { background: #111; color: #fff; border: 1px solid #333; }
 
     .progress-bar {
       height: 6px;
@@ -208,17 +190,17 @@ export const ANALYTICS_HTML = `<!DOCTYPE html>
     }
 
     .progress-bar .fill { height: 100%; border-radius: 3px; transition: width 0.3s ease; }
-    .fill.blue { background: var(--accent-blue); }
-    .fill.green { background: var(--accent-green); }
-    .fill.red { background: var(--accent-red); }
-    .fill.purple { background: var(--accent-purple); }
+    .fill.blue { background: #fff; }
+    .fill.green { background: #fff; }
+    .fill.red { background: #ff6666; }
+    .fill.purple { background: #888; }
 
     .error-message {
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid var(--accent-red);
+      background: #1a0000;
+      border: 1px solid #ff0000;
       border-radius: 8px;
       padding: 16px;
-      color: var(--accent-red);
+      color: #ff6666;
       margin-bottom: 16px;
     }
 
@@ -231,7 +213,7 @@ export const ANALYTICS_HTML = `<!DOCTYPE html>
 <body>
   <div class="container">
     <header>
-      <h1>Worker Analytics: <span class="worker-name">x402-api</span></h1>
+      <h1>Worker Analytics: x402-api</h1>
       <div class="controls">
         <label for="timeRange">Time Range:</label>
         <select id="timeRange" onchange="fetchAnalytics()">
@@ -413,9 +395,9 @@ export const ANALYTICS_HTML = `<!DOCTYPE html>
             return '<tr>' +
               '<td class="mono">' + o.hostname + '</td>' +
               '<td class="mono">' + formatNumber(o.requests) + '</td>' +
-              '<td class="mono" style="color: var(--accent-green);">' + formatNumber(o.status['2xx']) + '</td>' +
-              '<td class="mono" style="color: var(--accent-yellow);">' + formatNumber(o.status['4xx']) + '</td>' +
-              '<td class="mono" style="color: var(--accent-red);">' + formatNumber(o.status['5xx']) + '</td>' +
+              '<td class="mono">' + formatNumber(o.status['2xx']) + '</td>' +
+              '<td class="mono" style="color: #888;">' + formatNumber(o.status['4xx']) + '</td>' +
+              '<td class="mono" style="color: #ff6666;">' + formatNumber(o.status['5xx']) + '</td>' +
               '<td class="mono">' + o.avgResponseTime + '</td>' +
               '<td class="mono">' + o.cacheRate + '</td>' +
               '</tr>';
@@ -429,7 +411,7 @@ export const ANALYTICS_HTML = `<!DOCTYPE html>
         var endpointData = data.endpointStats?.endpoints || [];
         if (endpointData.length > 0) {
           endpointsTable.innerHTML = endpointData.map(function(e) {
-            var errorClass = e.errors > 0 ? ' style="color: var(--accent-red);"' : '';
+            var errorClass = e.errors > 0 ? ' style="color: #ff6666;"' : '';
             return '<tr>' +
               '<td class="mono">' + e.endpoint + '</td>' +
               '<td class="mono">' + formatNumber(e.requests) + '</td>' +

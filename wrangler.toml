@@ -8,8 +8,8 @@ enabled = true
 
 # Development environment variables (use wrangler secret for production)
 [vars]
-NETWORK = "testnet"
-SERVER_ADDRESS = "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM"
+NETWORK = "mainnet"
+SERVER_ADDRESS = "SP3Y6YFCBP48VD8GFJGM6W9V3B108Y54SV1N391J6"
 FACILITATOR_URL = "https://facilitator.x402stacks.xyz"
 
 # KV namespace for endpoint analytics (persistent tracking)
