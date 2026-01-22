@@ -23,6 +23,7 @@ import { TrendingTimeframe } from "./services/tenero/types";
 import { analyzeWalletTrading, analyzeWalletPnl } from "./services/tenero-wallets.service";
 import { getWorkerAnalytics, trackEndpointKV, getEndpointStatsKV } from "./services/analytics.service";
 import { ANALYTICS_HTML } from "./analytics-page";
+import { EARNINGS_HTML } from "./earnings-page";
 // Alex Lab services
 import {
   optimizeSwap,
@@ -393,6 +394,20 @@ async function handleRequest(request: Request, env: Env, url: URL, method: strin
 
       const analytics = await getWorkerAnalytics(env.CLOUDFLARE_API_TOKEN, validHours, env.ANALYTICS);
       return jsonResponse(analytics);
+    }
+
+    // Earnings dashboard (free, public)
+    if (method === "GET" && url.pathname === "/earnings") {
+      // Inject SERVER_ADDRESS into the HTML template
+      const html = EARNINGS_HTML.replace("{{SERVER_ADDRESS}}", env.SERVER_ADDRESS || "");
+      return new Response(html, {
+        status: 200,
+        headers: {
+          "content-type": "text/html; charset=utf-8",
+          "access-control-allow-origin": "*",
+          "cache-control": "public, max-age=300",
+        },
+      });
     }
 
     // x402 scan manifest (free)
