@@ -139,11 +139,7 @@ export const EARNINGS_HTML = `<!DOCTYPE html>
         <div class="value stx" id="totalEarnings">-</div>
       </div>
       <div class="summary-card">
-        <div class="label">Balance</div>
-        <div class="value stx" id="balance">-</div>
-      </div>
-      <div class="summary-card">
-        <div class="label">Payments</div>
+        <div class="label">Payments Shown</div>
         <div class="value" id="paymentCount">-</div>
       </div>
       <div class="summary-card">
@@ -263,10 +259,8 @@ export const EARNINGS_HTML = `<!DOCTYPE html>
             };
           });
 
-        var totalEarnings = payments.reduce(function(sum, p) { return sum + p.amount; }, 0);
-
-        document.getElementById('totalEarnings').textContent = formatSTX(totalEarnings);
-        document.getElementById('balance').textContent = formatSTX(balance);
+        // Use actual balance as total earnings (not affected by transaction limit)
+        document.getElementById('totalEarnings').textContent = formatSTX(balance);
         document.getElementById('paymentCount').textContent = payments.length;
         document.getElementById('wallet').textContent = truncate(SERVER_ADDRESS, 8, 6);
 
