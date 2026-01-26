@@ -308,6 +308,13 @@ export const EARNINGS_HTML = `<!DOCTYPE html>
       margin-left: 0.25rem;
     }
 
+    .summary-card .subvalue {
+      font-size: 0.6875rem;
+      color: var(--muted-foreground);
+      margin-top: 0.25rem;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
     /* Section */
     .section {
       background: var(--card);
@@ -553,8 +560,9 @@ export const EARNINGS_HTML = `<!DOCTYPE html>
         <div class="value" id="totalEarnings">—<small>STX</small></div>
       </div>
       <div class="summary-card">
-        <div class="label">Payments</div>
+        <div class="label">Total Payments</div>
         <div class="value" id="paymentCount">—</div>
+        <div class="subvalue" id="paymentsShown">—</div>
       </div>
       <div class="summary-card">
         <div class="label">Wallet</div>
@@ -628,21 +636,25 @@ export const EARNINGS_HTML = `<!DOCTYPE html>
       setStatus(true, 'Fetching...');
       document.getElementById('error').innerHTML = '';
 
-      var limit = parseInt(document.getElementById('limit').value, 10);
+      var displayLimit = parseInt(document.getElementById('limit').value, 10);
+      var MAX_FETCH = 500; // Fetch up to 500 transactions to count total payments
 
       try {
         var allTxs = [];
         var offset = 0;
         var HIRO_MAX = 50;
+        var totalAvailable = 0;
 
-        while (allTxs.length < limit) {
-          var fetchLimit = Math.min(HIRO_MAX, limit - allTxs.length);
+        // Fetch all transactions (up to MAX_FETCH) to count total payments
+        while (allTxs.length < MAX_FETCH) {
+          var fetchLimit = Math.min(HIRO_MAX, MAX_FETCH - allTxs.length);
           var txUrl = 'https://api.hiro.so/extended/v1/address/' + SERVER_ADDRESS + '/transactions?limit=' + fetchLimit + '&offset=' + offset;
 
           var txRes = await fetch(txUrl);
           if (!txRes.ok) throw new Error('Hiro API error: ' + txRes.status);
 
           var txData = await txRes.json();
+          totalAvailable = txData.total;
           if (!txData.results || txData.results.length === 0) break;
 
           allTxs = allTxs.concat(txData.results);
@@ -663,7 +675,8 @@ export const EARNINGS_HTML = `<!DOCTYPE html>
           return true;
         });
 
-        var payments = uniqueTxs
+        // Filter all payments for total count
+        var allPayments = uniqueTxs
           .filter(function(tx) {
             return tx.tx_type === 'token_transfer' &&
                    tx.tx_status === 'success' &&
@@ -680,16 +693,20 @@ export const EARNINGS_HTML = `<!DOCTYPE html>
             };
           });
 
+        // Limit displayed payments based on user selection
+        var displayedPayments = allPayments.slice(0, displayLimit);
+
         document.getElementById('totalEarnings').innerHTML = formatSTX(balance) + '<small>STX</small>';
-        document.getElementById('paymentCount').textContent = payments.length;
+        document.getElementById('paymentCount').textContent = allPayments.length + (allTxs.length >= MAX_FETCH && totalAvailable > MAX_FETCH ? '+' : '');
+        document.getElementById('paymentsShown').textContent = 'showing ' + displayedPayments.length;
         document.getElementById('wallet').textContent = truncate(SERVER_ADDRESS, 8, 6);
 
         var tbody = document.getElementById('txTable');
 
-        if (payments.length === 0) {
+        if (displayedPayments.length === 0) {
           tbody.innerHTML = '<tr><td colspan="5" class="empty-state"><div class="empty-state-icon">📭</div>No payments found</td></tr>';
         } else {
-          tbody.innerHTML = payments.map(function(tx) {
+          tbody.innerHTML = displayedPayments.map(function(tx) {
             return '<tr>' +
               '<td>' + formatTime(tx.timestamp) + '</td>' +
               '<td><span class="badge amount">' + formatSTX(tx.amount) + ' STX</span></td>' +
