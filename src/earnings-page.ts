@@ -637,67 +637,21 @@ export const EARNINGS_HTML = `<!DOCTYPE html>
       document.getElementById('error').innerHTML = '';
 
       var displayLimit = parseInt(document.getElementById('limit').value, 10);
-      var MAX_FETCH = 500; // Fetch up to 500 transactions to count total payments
 
       try {
-        var allTxs = [];
-        var offset = 0;
-        var HIRO_MAX = 50;
-        var totalAvailable = 0;
+        var res = await fetch('/api/earnings');
+        if (!res.ok) throw new Error('API error: ' + res.status);
+        var data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Unknown error');
 
-        // Fetch all transactions (up to MAX_FETCH) to count total payments
-        while (allTxs.length < MAX_FETCH) {
-          var fetchLimit = Math.min(HIRO_MAX, MAX_FETCH - allTxs.length);
-          var txUrl = 'https://api.hiro.so/extended/v1/address/' + SERVER_ADDRESS + '/transactions?limit=' + fetchLimit + '&offset=' + offset;
-
-          var txRes = await fetch(txUrl);
-          if (!txRes.ok) throw new Error('Hiro API error: ' + txRes.status);
-
-          var txData = await txRes.json();
-          totalAvailable = txData.total;
-          if (!txData.results || txData.results.length === 0) break;
-
-          allTxs = allTxs.concat(txData.results);
-          offset += txData.results.length;
-
-          if (allTxs.length >= txData.total) break;
-        }
-
-        var balRes = await fetch('https://api.hiro.so/extended/v1/address/' + SERVER_ADDRESS + '/balances');
-        if (!balRes.ok) throw new Error('Balance API error: ' + balRes.status);
-        var balData = await balRes.json();
-        var balance = parseInt(balData.stx.balance, 10);
-
-        var seen = {};
-        var uniqueTxs = allTxs.filter(function(tx) {
-          if (seen[tx.tx_id]) return false;
-          seen[tx.tx_id] = true;
-          return true;
-        });
-
-        // Filter all payments for total count
-        var allPayments = uniqueTxs
-          .filter(function(tx) {
-            return tx.tx_type === 'token_transfer' &&
-                   tx.tx_status === 'success' &&
-                   tx.token_transfer &&
-                   tx.token_transfer.recipient_address === SERVER_ADDRESS;
-          })
-          .map(function(tx) {
-            return {
-              txId: tx.tx_id,
-              timestamp: tx.burn_block_time_iso,
-              amount: parseInt(tx.token_transfer.amount, 10),
-              sender: tx.sender_address,
-              status: tx.tx_status
-            };
-          });
+        var allPayments = data.payments;
+        var balance = data.balance;
 
         // Limit displayed payments based on user selection
         var displayedPayments = allPayments.slice(0, displayLimit);
 
         document.getElementById('totalEarnings').innerHTML = formatSTX(balance) + '<small>STX</small>';
-        document.getElementById('paymentCount').textContent = allPayments.length + (allTxs.length >= MAX_FETCH && totalAvailable > MAX_FETCH ? '+' : '');
+        document.getElementById('paymentCount').textContent = data.totalPayments + (data.truncated ? '+' : '');
         document.getElementById('paymentsShown').textContent = 'showing ' + displayedPayments.length;
         document.getElementById('wallet').textContent = truncate(SERVER_ADDRESS, 8, 6);
 
