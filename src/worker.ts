@@ -336,7 +336,7 @@ export default {
     // Execute request and track endpoint
     let response: Response;
     try {
-      response = await handleRequest(request, env, url, method);
+      response = await handleRequest(request, env, url, method, ctx);
     } catch (error) {
       console.error("Request error:", error);
       response = sendError(
@@ -358,7 +358,7 @@ export default {
   },
 };
 
-async function handleRequest(request: Request, env: Env, url: URL, method: string): Promise<Response> {
+async function handleRequest(request: Request, env: Env, url: URL, method: string, ctx: ExecutionContext): Promise<Response> {
 
     // Health check (free)
     if (method === "GET" && url.pathname === "/health") {
@@ -377,13 +377,18 @@ async function handleRequest(request: Request, env: Env, url: URL, method: strin
       });
     }
 
-    // Analytics API endpoint (free, public)
+    // Analytics API endpoint (free, public, cached 2 min)
     if (method === "GET" && url.pathname === "/api/analytics") {
       const hours = parseInt(url.searchParams.get("hours") || "168", 10);
       const validHours = Math.min(Math.max(hours, 1), 720); // 1 hour to 30 days
 
+      // Check edge cache first
+      const cache = (caches as any).default as Cache;
+      const cacheKey = new Request(url.toString(), request);
+      const cached = await cache.match(cacheKey);
+      if (cached) return cached;
+
       if (!env.CLOUDFLARE_API_TOKEN) {
-        // Return endpoint stats even without CF API token
         const endpointStats = await getEndpointStatsKV(env.ANALYTICS);
         return jsonResponse({
           success: false,
@@ -393,7 +398,83 @@ async function handleRequest(request: Request, env: Env, url: URL, method: strin
       }
 
       const analytics = await getWorkerAnalytics(env.CLOUDFLARE_API_TOKEN, validHours, env.ANALYTICS);
-      return jsonResponse(analytics);
+      const response = jsonResponse(analytics);
+      // Cache for 2 minutes at the edge
+      response.headers.set("cache-control", "public, max-age=120");
+      ctx.waitUntil(cache.put(cacheKey, response.clone()));
+      return response;
+    }
+
+    // Earnings API endpoint (free, public, cached 2 min)
+    if (method === "GET" && url.pathname === "/api/earnings") {
+      const cache = (caches as any).default as Cache;
+      const cacheKey = new Request(url.toString(), request);
+      const cached = await cache.match(cacheKey);
+      if (cached) return cached;
+
+      const serverAddress = env.SERVER_ADDRESS;
+      if (!serverAddress) {
+        return jsonResponse({ success: false, error: "SERVER_ADDRESS not configured" }, 500);
+      }
+
+      const MAX_FETCH = 500;
+      const HIRO_LIMIT = 50;
+      const allTxs: any[] = [];
+      let offset = 0;
+      let totalAvailable = 0;
+
+      while (allTxs.length < MAX_FETCH) {
+        const fetchLimit = Math.min(HIRO_LIMIT, MAX_FETCH - allTxs.length);
+        const txRes = await fetch(
+          `https://api.hiro.so/extended/v1/address/${serverAddress}/transactions?limit=${fetchLimit}&offset=${offset}`
+        );
+        if (!txRes.ok) break;
+        const txData: any = await txRes.json();
+        totalAvailable = txData.total || 0;
+        if (!txData.results || txData.results.length === 0) break;
+        allTxs.push(...txData.results);
+        offset += txData.results.length;
+        if (allTxs.length >= totalAvailable) break;
+      }
+
+      const balRes = await fetch(
+        `https://api.hiro.so/extended/v1/address/${serverAddress}/balances`
+      );
+      const balData: any = balRes.ok ? await balRes.json() : { stx: { balance: "0" } };
+      const balance = parseInt(balData.stx?.balance || "0", 10);
+
+      const seen = new Set<string>();
+      const payments = allTxs
+        .filter((tx) => {
+          if (seen.has(tx.tx_id)) return false;
+          seen.add(tx.tx_id);
+          return (
+            tx.tx_type === "token_transfer" &&
+            tx.tx_status === "success" &&
+            tx.token_transfer?.recipient_address === serverAddress
+          );
+        })
+        .map((tx) => ({
+          txId: tx.tx_id,
+          timestamp: tx.burn_block_time_iso,
+          amount: parseInt(tx.token_transfer.amount, 10),
+          sender: tx.sender_address,
+          status: tx.tx_status,
+        }));
+
+      const result = {
+        success: true,
+        balance,
+        totalPayments: payments.length,
+        totalAvailable,
+        truncated: allTxs.length >= MAX_FETCH && totalAvailable > MAX_FETCH,
+        payments,
+      };
+
+      const response = jsonResponse(result);
+      response.headers.set("cache-control", "public, max-age=120");
+      ctx.waitUntil(cache.put(cacheKey, response.clone()));
+      return response;
     }
 
     // Earnings dashboard (free, public)
