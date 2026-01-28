@@ -377,16 +377,10 @@ async function handleRequest(request: Request, env: Env, url: URL, method: strin
       });
     }
 
-    // Analytics API endpoint (free, public, cached 2 min)
+    // Analytics API endpoint (free, public)
     if (method === "GET" && url.pathname === "/api/analytics") {
       const hours = parseInt(url.searchParams.get("hours") || "168", 10);
       const validHours = Math.min(Math.max(hours, 1), 720); // 1 hour to 30 days
-
-      // Check edge cache first
-      const cache = (caches as any).default as Cache;
-      const cacheKey = new Request(url.toString(), request);
-      const cached = await cache.match(cacheKey);
-      if (cached) return cached;
 
       if (!env.CLOUDFLARE_API_TOKEN) {
         const endpointStats = await getEndpointStatsKV(env.ANALYTICS);
@@ -398,20 +392,11 @@ async function handleRequest(request: Request, env: Env, url: URL, method: strin
       }
 
       const analytics = await getWorkerAnalytics(env.CLOUDFLARE_API_TOKEN, validHours, env.ANALYTICS);
-      const response = jsonResponse(analytics);
-      // Cache for 2 minutes at the edge
-      response.headers.set("cache-control", "public, max-age=120");
-      ctx.waitUntil(cache.put(cacheKey, response.clone()));
-      return response;
+      return jsonResponse(analytics);
     }
 
-    // Earnings API endpoint (free, public, cached 2 min)
+    // Earnings API endpoint (free, public)
     if (method === "GET" && url.pathname === "/api/earnings") {
-      const cache = (caches as any).default as Cache;
-      const cacheKey = new Request(url.toString(), request);
-      const cached = await cache.match(cacheKey);
-      if (cached) return cached;
-
       const serverAddress = env.SERVER_ADDRESS;
       if (!serverAddress) {
         return jsonResponse({ success: false, error: "SERVER_ADDRESS not configured" }, 500);
@@ -462,19 +447,14 @@ async function handleRequest(request: Request, env: Env, url: URL, method: strin
           status: tx.tx_status,
         }));
 
-      const result = {
+      return jsonResponse({
         success: true,
         balance,
         totalPayments: payments.length,
         totalAvailable,
         truncated: allTxs.length >= MAX_FETCH && totalAvailable > MAX_FETCH,
         payments,
-      };
-
-      const response = jsonResponse(result);
-      response.headers.set("cache-control", "public, max-age=120");
-      ctx.waitUntil(cache.put(cacheKey, response.clone()));
-      return response;
+      });
     }
 
     // Earnings dashboard (free, public)
