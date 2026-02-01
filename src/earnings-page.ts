@@ -626,6 +626,7 @@ export const EARNINGS_HTML = `<!DOCTYPE html>
     }
 
     var SERVER_ADDRESS = '{{SERVER_ADDRESS}}';
+    var HIRO_API = 'https://api.hiro.so/extended/v1';
 
     async function fetchEarnings() {
       if (!SERVER_ADDRESS || SERVER_ADDRESS === '{{SERVER_ADDRESS}}') {
@@ -639,28 +640,48 @@ export const EARNINGS_HTML = `<!DOCTYPE html>
       var displayLimit = parseInt(document.getElementById('limit').value, 10);
 
       try {
-        var res = await fetch('/api/earnings');
-        if (!res.ok) throw new Error('API error: ' + res.status);
-        var data = await res.json();
-        if (!data.success) throw new Error(data.error || 'Unknown error');
+        // Fetch transactions and balance in parallel directly from Hiro API
+        var [txRes, balRes] = await Promise.all([
+          fetch(HIRO_API + '/address/' + SERVER_ADDRESS + '/transactions?limit=' + displayLimit),
+          fetch(HIRO_API + '/address/' + SERVER_ADDRESS + '/balances')
+        ]);
 
-        var allPayments = data.payments;
-        var balance = data.balance;
+        if (!txRes.ok) throw new Error('Failed to fetch transactions: ' + txRes.status);
+        if (!balRes.ok) throw new Error('Failed to fetch balance: ' + balRes.status);
 
-        // Limit displayed payments based on user selection
-        var displayedPayments = allPayments.slice(0, displayLimit);
+        var [txData, balData] = await Promise.all([txRes.json(), balRes.json()]);
+
+        var balance = parseInt(balData.stx?.balance || '0', 10);
+        var totalAvailable = txData.total || 0;
+
+        // Filter for incoming STX transfers
+        var payments = (txData.results || [])
+          .filter(function(tx) {
+            return tx.tx_type === 'token_transfer' &&
+                   tx.tx_status === 'success' &&
+                   tx.token_transfer?.recipient_address === SERVER_ADDRESS;
+          })
+          .map(function(tx) {
+            return {
+              txId: tx.tx_id,
+              timestamp: tx.burn_block_time_iso,
+              amount: parseInt(tx.token_transfer.amount, 10),
+              sender: tx.sender_address,
+              status: tx.tx_status
+            };
+          });
 
         document.getElementById('totalEarnings').innerHTML = formatSTX(balance) + '<small>STX</small>';
-        document.getElementById('paymentCount').textContent = data.totalPayments + (data.truncated ? '+' : '');
-        document.getElementById('paymentsShown').textContent = 'showing ' + displayedPayments.length;
+        document.getElementById('paymentCount').textContent = payments.length + (totalAvailable > displayLimit ? '+' : '');
+        document.getElementById('paymentsShown').textContent = 'of ' + totalAvailable + ' txs';
         document.getElementById('wallet').textContent = truncate(SERVER_ADDRESS, 8, 6);
 
         var tbody = document.getElementById('txTable');
 
-        if (displayedPayments.length === 0) {
+        if (payments.length === 0) {
           tbody.innerHTML = '<tr><td colspan="5" class="empty-state"><div class="empty-state-icon">📭</div>No payments found</td></tr>';
         } else {
-          tbody.innerHTML = displayedPayments.map(function(tx) {
+          tbody.innerHTML = payments.map(function(tx) {
             return '<tr>' +
               '<td>' + formatTime(tx.timestamp) + '</td>' +
               '<td><span class="badge amount">' + formatSTX(tx.amount) + ' STX</span></td>' +
