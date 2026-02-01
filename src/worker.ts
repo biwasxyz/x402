@@ -395,69 +395,7 @@ async function handleRequest(request: Request, env: Env, url: URL, method: strin
       return jsonResponse(analytics);
     }
 
-    // Earnings API endpoint (free, public)
-    if (method === "GET" && url.pathname === "/api/earnings") {
-      const serverAddress = env.SERVER_ADDRESS;
-      if (!serverAddress) {
-        return jsonResponse({ success: false, error: "SERVER_ADDRESS not configured" }, 500);
-      }
-
-      const MAX_FETCH = 500;
-      const HIRO_LIMIT = 50;
-      const allTxs: any[] = [];
-      let offset = 0;
-      let totalAvailable = 0;
-
-      while (allTxs.length < MAX_FETCH) {
-        const fetchLimit = Math.min(HIRO_LIMIT, MAX_FETCH - allTxs.length);
-        const txRes = await fetch(
-          `https://api.hiro.so/extended/v1/address/${serverAddress}/transactions?limit=${fetchLimit}&offset=${offset}`
-        );
-        if (!txRes.ok) break;
-        const txData: any = await txRes.json();
-        totalAvailable = txData.total || 0;
-        if (!txData.results || txData.results.length === 0) break;
-        allTxs.push(...txData.results);
-        offset += txData.results.length;
-        if (allTxs.length >= totalAvailable) break;
-      }
-
-      const balRes = await fetch(
-        `https://api.hiro.so/extended/v1/address/${serverAddress}/balances`
-      );
-      const balData: any = balRes.ok ? await balRes.json() : { stx: { balance: "0" } };
-      const balance = parseInt(balData.stx?.balance || "0", 10);
-
-      const seen = new Set<string>();
-      const payments = allTxs
-        .filter((tx) => {
-          if (seen.has(tx.tx_id)) return false;
-          seen.add(tx.tx_id);
-          return (
-            tx.tx_type === "token_transfer" &&
-            tx.tx_status === "success" &&
-            tx.token_transfer?.recipient_address === serverAddress
-          );
-        })
-        .map((tx) => ({
-          txId: tx.tx_id,
-          timestamp: tx.burn_block_time_iso,
-          amount: parseInt(tx.token_transfer.amount, 10),
-          sender: tx.sender_address,
-          status: tx.tx_status,
-        }));
-
-      return jsonResponse({
-        success: true,
-        balance,
-        totalPayments: payments.length,
-        totalAvailable,
-        truncated: allTxs.length >= MAX_FETCH && totalAvailable > MAX_FETCH,
-        payments,
-      });
-    }
-
-    // Earnings dashboard (free, public)
+    // Earnings dashboard (free, public) - fetches from Hiro API client-side
     if (method === "GET" && url.pathname === "/earnings") {
       // Inject SERVER_ADDRESS into the HTML template
       const html = EARNINGS_HTML.replace("{{SERVER_ADDRESS}}", env.SERVER_ADDRESS || "");
